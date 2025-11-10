@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { UserIcon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 
 const UserProfile = ({user}) => {
@@ -12,6 +13,7 @@ const UserProfile = ({user}) => {
     const navigate = useNavigate();
     const handleLogout = async () =>{
         logout()
+        toast.success("Logged out successfully")
         navigate("/")
     }
 

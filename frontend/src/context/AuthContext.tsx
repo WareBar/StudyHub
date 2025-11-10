@@ -34,6 +34,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: any }>;
+  loginWithGoogle: (token: string) => Promise<{ success: boolean; user?: User; error?: any }>;
   logout: () => void;
   register: (userData: any) => Promise<{ success: boolean; message?: string; error?: any }>;
   fetchUserProfile: () => Promise<void>;
@@ -165,6 +166,32 @@ export const AuthProvider = ({children}:AuthProviderProps) => {
     };
 
 
+
+    // function for logging in with Google
+    const loginWithGoogle = async (googleToken: string) => {
+    try {
+        const response = await axios.post(`${API_URL}/auth/google/`, {
+        token: googleToken,
+        });
+        const { access, refresh, user } = response.data;
+
+        // Store tokens & user in localStorage
+        setTokens(access, refresh);
+        setUser(user);
+        localStorage.setItem("user", JSON.stringify(user));
+
+        return { success: true, user };
+    } catch (error) {
+        console.error("Google login failed:", error.response?.data || error.message);
+        return {
+        success: false,
+        error: error.response?.data || { detail: "Google login failed." },
+        };
+    }
+    };
+
+
+
     // function for logging out
     // simply removes the tokens 
     const logout = () => {
@@ -201,6 +228,7 @@ export const AuthProvider = ({children}:AuthProviderProps) => {
         logout,
         register,
         fetchUserProfile,
+        loginWithGoogle
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
