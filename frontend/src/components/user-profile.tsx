@@ -1,31 +1,49 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-// import { FaUserCircle } from "react-icons/fa";
-import { UserIcon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar";
 
-
-const UserProfile = ({user}) => {
+const UserProfile = ({ user }) => {
   const [open, setOpen] = useState(false);
-    const {logout} = useAuth()
-    const navigate = useNavigate();
-    const handleLogout = async () =>{
-        logout()
-        toast.success("Logged out successfully")
-        navigate("/")
-    }
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    logout();
+    toast.success("Logged out successfully");
+    navigate("/");
+  };
+
+  // Helper: get initials if no avatar image
+  const getInitials = (email) => {
+    if (!email) return "U";
+    return email[0].toUpperCase();
+  };
 
   return (
-    <div className="text-white z-50">
+    <div className="text-white z-50 relative">
       {/* Avatar + Email */}
       <div
         className="flex items-center gap-3 cursor-pointer bg-white/10 px-4 py-2 rounded-full backdrop-blur-md hover:bg-white/20 transition"
         onClick={() => setOpen(!open)}
       >
-        <UserIcon className="text-3xl text-[#00FFA3]" />
-        <span className="hidden sm:block">{user.email}</span>
+        {/* Avatar */}
+        <Avatar className="h-8 w-8 border border-white/20">
+          <AvatarImage
+            src={user?.avatar}
+            alt={user?.email || "User avatar"}
+          />
+          <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
+        </Avatar>
+
+        {/* Email */}
+        <span className="hidden sm:block">{user?.email}</span>
       </div>
 
       {/* Dropdown Menu */}
@@ -40,8 +58,7 @@ const UserProfile = ({user}) => {
           >
             <button
               className="w-full px-4 py-2 text-left text-white hover:bg-[#2d2665] transition"
-              onClick={()=>handleLogout()}
-
+              onClick={handleLogout}
             >
               Logout
             </button>

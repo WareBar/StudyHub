@@ -14,7 +14,6 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2Icon } from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
-import axios from "axios";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -23,7 +22,7 @@ export default function LoginPage() {
   const { login, loginWithGoogle} = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e:React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLogging(true);
 
@@ -149,7 +148,7 @@ export default function LoginPage() {
               {/* Right-side image */}
               <div className="bg-muted relative hidden md:block">
                 <img
-                  src="/placeholder.svg"
+                  src="https://i.pinimg.com/originals/b2/2a/a2/b22aa22b2f3f55b6468361158d52e2e7.gif"
                   alt="Image"
                   className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
                 />

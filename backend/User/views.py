@@ -70,6 +70,7 @@ class GoogleOAuthLogin(APIView):
                     'username': name,
                     'avatar':picture
                 }
+                
 
             )
 
