@@ -6,6 +6,10 @@ from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 # Create your views here.
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from google.oauth2 import id_token
+from google.auth.transport import requests
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.views import APIView
 
 
 class UserViewset(ModelViewSet):
@@ -41,3 +45,45 @@ class UserViewset(ModelViewSet):
         user = serializer.save()
         user.set_password(user.password)
         user.save()
+
+
+
+
+# handle the  google login
+# this login if that user does not exist, and auto register the user using google info
+# in get_or_create
+class GoogleOAuthLogin(APIView):
+    permission_classes = [AllowAny]
+    def post(self, request):
+        token = request.data.get('token')
+        try:
+            # Verify Google token
+            idinfo = id_token.verify_oauth2_token(token, requests.Request())
+            email = idinfo['email']
+            name = idinfo.get('name', email.split('@')[0])
+            picture = idinfo.get('picture', '')
+
+            # Create or get user
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={
+                    'username': name,
+                    'avatar':picture
+                }
+
+            )
+
+            # Issue JWT tokens
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'avatar': picture,
+                }
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
