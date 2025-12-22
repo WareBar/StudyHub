@@ -43,7 +43,7 @@ const UserProfile = ({ user }) => {
         </Avatar>
 
         {/* Email */}
-        <span className="hidden sm:block">{user?.email}</span>
+        <span className="hidden sm:block text-black">{user?.email}</span>
       </div>
 
       {/* Dropdown Menu */}

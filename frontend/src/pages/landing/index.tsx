@@ -6,36 +6,16 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
 const HomePage = () => {
-  const letters = [
-    { text: "Djan", color: "#00FFA3" },  // neon green
-    { text: "React", color: "#29ABE2" }, // neon blue
-    { text: "JWT", color: "#FF6D00" },   // neon orange
-  ];
-
-  const blobVariants = {
-    animate: {
-      scale: [0.9, 1.1, 0.9],
-      x: [-60, 80, -60],
-      y: [-70, 60, -70],
-      transition: {
-        duration: 10,
-        repeat: Infinity,
-        repeatType: "mirror",
-        ease: "easeInOut",
-      },
-    },
-  };
-
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
 
   return (
-    <div className="relative flex justify-center items-center h-screen bg-gradient-to-b from-[#0f0c29] via-[#302b63] to-[#24243e] overflow-hidden">
+    <div className="relative min-h-screen bg-gradient-to-b from-orange-50 via-white to-orange-50 overflow-hidden">
       
-      {/* Top-right Auth Section */}
-      <div className="absolute top-6 right-6">
+      {/* Auth */}
+      <div className="absolute top-6 right-6 z-50">
         {isLoading ? (
-          <div className="flex items-center space-x-2 text-gray-300">
+          <div className="flex items-center space-x-2 text-orange-700">
             <Loader2Icon className="animate-spin h-5 w-5" />
             <span>Loading...</span>
           </div>
@@ -44,79 +24,232 @@ const HomePage = () => {
         ) : (
           <Button
             onClick={() => navigate("/login")}
-            className="bg-[#29ABE2] hover:bg-[#00FFA3] text-white font-semibold px-5 py-2 rounded-md transition-all duration-300 hover:scale-105 hover:text-black shadow-lg shadow-[#00FFA3]/30"
+            className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-md shadow-md"
           >
             Login
           </Button>
         )}
       </div>
 
-      {/* Animated Blobs */}
-      {[
-        { bg: "#ff4f81", size: "w-96 h-96", top: "-10%", left: "-10%", blur: "blur-3xl", opacity: "opacity-50" },
-        { bg: "#29ABE2", size: "w-80 h-80", top: "25%", left: "65%", blur: "blur-2xl", opacity: "opacity-40" },
-        { bg: "#00FFA3", size: "w-72 h-72", top: "60%", left: "20%", blur: "blur-3xl", opacity: "opacity-30" },
-      ].map((blob, i) => (
+      {/* Soft Background Blobs (Subtle) */}
+      <motion.div
+        className="absolute w-[500px] h-[500px] bg-orange-200 rounded-full blur-3xl opacity-40 -top-40 -left-40"
+        animate={{ scale: [1, 1.1, 1] }}
+        transition={{ duration: 12, repeat: Infinity }}
+      />
+      <motion.div
+        className="absolute w-[400px] h-[400px] bg-orange-300 rounded-full blur-3xl opacity-30 bottom-0 right-0"
+        animate={{ scale: [1, 1.1, 1] }}
+        transition={{ duration: 14, repeat: Infinity }}
+      />
+
+      {/* HERO */}
+      <section className="relative z-10 flex flex-col items-center justify-center text-center px-6 pt-32 pb-24">
+        
+        {/* Brand Name */}
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-6xl md:text-7xl font-extrabold text-orange-600 tracking-tight"
+        >
+          StudyHub
+        </motion.h1>
+
+        {/* Tagline */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.6 }}
+          className="mt-6 max-w-2xl text-lg md:text-xl text-orange-700"
+        >
+          A peer-to-peer study platform where students connect, collaborate,
+          and learn better together.
+        </motion.p>
+
+        {/* CTA */}
         <motion.div
-          key={i}
-          className={`absolute ${blob.size} rounded-full mix-blend-screen filter ${blob.blur} ${blob.opacity}`}
-          style={{ backgroundColor: blob.bg, top: blob.top, left: blob.left }}
-          variants={blobVariants}
-          animate="animate"
-        />
-      ))}
-
-      {/* Draggable Neon Text */}
-      <div className="relative flex flex-wrap justify-center items-center gap-6">
-        {letters.map((letter, index) => (
-          <motion.div
-            key={index}
-            drag
-            dragElastic={0.7}
-            whileTap={{ scale: 1.2 }}
-            whileHover={{
-              scale: 1.15,
-              textShadow: `
-                0 0 10px ${letter.color},
-                0 0 20px ${letter.color},
-                0 0 40px ${letter.color}`,
-            }}
-            className="cursor-grab active:cursor-grabbing select-none"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.6 }}
+          className="mt-10 flex gap-4"
+        >
+          <Button
+            onClick={() => navigate("/signup")}
+            className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-xl text-lg shadow-lg"
           >
-            <motion.span
-              initial={{ opacity: 0, y: -40, scale: 0.8 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{
-                delay: index * 0.3,
-                type: "spring",
-                stiffness: 120,
-                damping: 14,
-              }}
-              style={{
-                color: letter.color,
-                fontSize: "5rem",
-                fontWeight: "900",
-                letterSpacing: "0.05em",
-                textShadow: `0 0 10px ${letter.color}, 0 0 30px ${letter.color}`,
-              }}
-            >
-              {letter.text}
-            </motion.span>
-          </motion.div>
-        ))}
-      </div>
+            Get Started
+          </Button>
+          <Button
+            variant="outline"
+            className="border-orange-500 text-orange-600 px-8 py-4 rounded-xl text-lg hover:bg-orange-50"
+          >
+            Learn More
+          </Button>
+        </motion.div>
 
-      {/* Subtext */}
-      <motion.p
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.5, duration: 0.8 }}
-        className="absolute bottom-16 text-lg text-gray-300 tracking-wide"
-      >
-        <span className="text-[#00FFA3] font-semibold">Made by</span> ✦ WareBar
-      </motion.p>
+        {/* Hero Image */}
+
+        <div className="md:w-1/2 flex justify-center">
+          <BooksIllustration />
+        </div>
+      </section>
+
+      {/* FEATURES */}
+      <section className="relative z-10 max-w-6xl mx-auto px-6 pb-32">
+        <div className="grid md:grid-cols-3 gap-10">
+          {[
+            {
+              title: "Smart Group Matching",
+              desc: "Find the right study group based on subject, schedule, and skill level.",
+            },
+            {
+              title: "Real-Time Collaboration",
+              desc: "Chat, share files, and organize sessions in one place.",
+            },
+            {
+              title: "Progress Tracking",
+              desc: "Track attendance, participation, and study consistency.",
+            },
+          ].map((item, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.15 }}
+              className="bg-white rounded-2xl p-8 shadow-md hover:shadow-xl transition"
+            >
+              <h3 className="text-xl font-semibold text-orange-600 mb-3">
+                {item.title}
+              </h3>
+              <p className="text-orange-700">{item.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="bg-orange-100 py-6 text-center text-orange-700">
+        © {new Date().getFullYear()} StudyHub. All rights reserved.
+      </footer>
     </div>
   );
 };
 
+
+
+const BooksIllustration = () => (
+  <motion.svg
+    viewBox="0 0 600 400"
+    className="w-full max-w-lg mx-auto"
+    xmlns="http://www.w3.org/2000/svg"
+    initial={{ y: 0 }}
+    animate={{ y: [0, -8, 0] }}
+    transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+  >
+    {/* Soft background */}
+    <ellipse cx="300" cy="260" rx="200" ry="70" fill="#FFF3E0" />
+
+    {/* Shadow */}
+    <ellipse cx="300" cy="280" rx="140" ry="22" fill="#000" opacity="0.05" />
+
+    {/* Book base (left) */}
+    <polygon
+      points="180,170 300,210 300,260 180,220"
+      fill="#FFB74D"
+    />
+
+    {/* Book base (right) */}
+    <polygon
+      points="300,210 420,170 420,220 300,260"
+      fill="#FFA726"
+    />
+
+    {/* Pages left */}
+    <polygon
+      points="190,165 300,205 300,215 190,175"
+      fill="#FFF8E1"
+    />
+
+    {/* Pages right */}
+    <polygon
+      points="300,205 410,165 410,175 300,215"
+      fill="#FFF3E0"
+    />
+
+    {/* Animated page flip */}
+    <motion.polygon
+      points="300,205 380,175 380,185 300,215"
+      fill="#FFFFFF"
+      animate={{
+        opacity: [0.6, 1, 0.6],
+        skewX: [0, -6, 0],
+      }}
+      transition={{
+        duration: 2.4,
+        repeat: Infinity,
+        ease: "easeInOut",
+      }}
+    />
+
+    {/* Book spine */}
+    <rect
+      x="295"
+      y="205"
+      width="10"
+      height="55"
+      rx="4"
+      fill="#FB8C00"
+    />
+
+    {/* Knowledge particles */}
+    <motion.circle
+      cx="260"
+      cy="130"
+      r="5"
+      fill="#FFCC80"
+      animate={{ y: [0, -20, 0], opacity: [0.5, 1, 0.5] }}
+      transition={{ duration: 3, repeat: Infinity }}
+    />
+    <motion.circle
+      cx="300"
+      cy="115"
+      r="4"
+      fill="#FFA726"
+      animate={{ y: [0, -25, 0], opacity: [0.4, 1, 0.4] }}
+      transition={{ duration: 3.5, repeat: Infinity }}
+    />
+    <motion.circle
+      cx="340"
+      cy="130"
+      r="5"
+      fill="#FFB74D"
+      animate={{ y: [0, -18, 0], opacity: [0.5, 1, 0.5] }}
+      transition={{ duration: 2.8, repeat: Infinity }}
+    />
+
+    {/* Focus rays */}
+    <motion.line
+      x1="300"
+      y1="90"
+      x2="300"
+      y2="65"
+      stroke="#FFCC80"
+      strokeWidth="3"
+      animate={{ opacity: [0.2, 1, 0.2] }}
+      transition={{ duration: 2, repeat: Infinity }}
+    />
+    <motion.line
+      x1="330"
+      y1="100"
+      x2="350"
+      y2="75"
+      stroke="#FFB74D"
+      strokeWidth="3"
+      animate={{ opacity: [0.2, 1, 0.2] }}
+      transition={{ duration: 2.6, repeat: Infinity }}
+    />
+  </motion.svg>
+);
 export default HomePage;
