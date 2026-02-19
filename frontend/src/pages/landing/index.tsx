@@ -57,14 +57,14 @@ const HomePage = () => {
   return (
     <div className="relative min-h-screen bg-linear-to-b from-orange-50 via-white to-orange-50 overflow-hidden">
       {/* Auth */}
-      <div className="fixed w-full z-[100000000]">
+      <div className="fixed w-full z-50">
         {isLoading ? (
           <div className="flex items-center space-x-2 text-orange-700">
             <Loader2Icon className="animate-spin h-5 w-5" />
             <span>Loading...</span>
           </div>
         ) : user ? (
-          <UserProfile user={user} />
+          <UserProfile user={user} variant="landing" />
         ) : (
           <Navbar />
         )}

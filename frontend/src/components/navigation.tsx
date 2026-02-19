@@ -45,9 +45,7 @@ export function Navbar({ isAuthenticated = false }: NavbarProps) {
             <div className="flex h-30 w-20 items-center justify-center rounded-xl ">
               <img src={icon} alt="StudyHub" className="w-20 h-20" />
             </div>
-            <span className="text-lg font-bold text-foreground hidden sm:block">
-              StudyMate
-            </span>
+            <span className="text-lg font-bold text-foreground hidden sm:block">StudyHub</span>
           </Link>
 
           {/* Desktop Navigation */}
