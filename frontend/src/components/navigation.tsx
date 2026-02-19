@@ -2,17 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  BookOpen,
-  Users,
-  Calendar,
-  Bell,
-  Menu,
-  X,
-  LogOut,
-  User,
-  LayoutDashboard,
-} from "lucide-react";
+import { Users, Calendar, Bell, Menu, X, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import icon from "@/assets/icon2.png";
 

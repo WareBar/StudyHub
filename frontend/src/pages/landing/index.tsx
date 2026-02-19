@@ -10,6 +10,7 @@ import {
   Clock,
   Sparkles,
   BookOpen,
+  Star,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +48,33 @@ const features = [
     icon: Sparkles,
     title: "Smart Notifications",
     description: "Never miss a session with timely reminders and updates.",
+  },
+];
+
+const testimonials = [
+  {
+    name: "Sarah Chen",
+    role: "Computer Science, Stanford",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=sarah",
+    content:
+      "StudyMate helped me find an amazing study group for algorithms. We went from struggling to acing our finals!",
+    rating: 5,
+  },
+  {
+    name: "Marcus Johnson",
+    role: "Pre-Med, UCLA",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=marcus",
+    content:
+      "The scheduling feature is a lifesaver. No more endless group chats trying to find a time that works!",
+    rating: 5,
+  },
+  {
+    name: "Emily Rodriguez",
+    role: "Business, NYU",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=emily",
+    content:
+      "I love how easy it is to find groups for my exact subjects. The match percentage feature is genius!",
+    rating: 5,
   },
 ];
 
@@ -248,6 +276,48 @@ const HomePage = () => {
                 <h3 className="text-xl font-semibold mb-2">{item.title}</h3>
                 <p className="text-muted-foreground">{item.description}</p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="testimonials" className="py-20 sm:py-32">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <Badge variant="soft" className="mb-4">
+              Testimonials
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+              Loved by Students Everywhere
+            </h2>
+            <p className="text-muted-foreground text-lg">
+              See what students are saying about their StudyMate experience.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {testimonials.map(testimonial => (
+              <Card key={testimonial.name} variant="elevated" className="p-6">
+                <CardContent className="p-0">
+                  <div className="flex gap-1 mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-warning text-warning" />
+                    ))}
+                  </div>
+                  <p className="text-foreground mb-6">"{testimonial.content}"</p>
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={testimonial.avatar}
+                      alt={testimonial.name}
+                      className="h-10 w-10 rounded-full bg-muted"
+                    />
+                    <div>
+                      <div className="font-semibold text-sm">{testimonial.name}</div>
+                      <div className="text-xs text-muted-foreground">{testimonial.role}</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>

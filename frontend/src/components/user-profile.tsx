@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import icon from "@/assets/icon2.png";
 
 const UserProfile = ({ user, variant = "dashboard" }) => {
   const { logout } = useAuth();
@@ -36,69 +37,64 @@ const UserProfile = ({ user, variant = "dashboard" }) => {
   // 🔥 LANDING NAV VERSION
   if (variant === "landing") {
     return (
-      <div className="w-full bg-white/80 backdrop-blur-xl border-b border-orange-100 shadow-sm relative z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          {/* Logo */}
-          <h1
-            onClick={() => navigate("/")}
-            className="text-2xl font-bold text-orange-600 cursor-pointer"
-          >
-            StudyHub
-          </h1>
-
-          {/* Profile Section */}
-          <div ref={dropdownRef} className="relative">
-            <div
-              onClick={() => setOpen(!open)}
-              className="flex items-center gap-3 cursor-pointer hover:bg-orange-50 px-3 py-2 rounded-xl transition"
-            >
-              <Avatar className="h-10 w-10 border-2 border-orange-400">
-                <AvatarImage src={user?.avatar} />
-                <AvatarFallback className="bg-orange-500 text-white">
-                  {getInitials(user?.email)}
-                </AvatarFallback>
-              </Avatar>
-
-              <div className="hidden sm:block text-left">
-                <p className="font-semibold text-orange-700">
-                  {user?.first_name || "Student"}
-                </p>
-                <p className="text-sm text-orange-600">{user?.email}</p>
-              </div>
+      <nav className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-md">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            {/* Logo */}
+            <div className="flex items-center gap-2">
+              <img src={icon} alt="StudyHub" className="w-20 h-20" />
+              <span className="text-lg font-bold hidden sm:block">StudyHub</span>
             </div>
 
-            {/* Dropdown */}
-            <AnimatePresence>
-              {open && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                  className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-orange-100 overflow-hidden"
-                >
-                  <button
-                    onClick={() => {
-                      navigate("/dashboard");
-                      setOpen(false);
-                    }}
-                    className="w-full text-left px-4 py-3 hover:bg-orange-50 text-orange-700 transition"
-                  >
-                    Dashboard
-                  </button>
+            {/* Profile Section */}
+            <div ref={dropdownRef} className="relative">
+              <div
+                onClick={() => setOpen(!open)}
+                className="flex items-center gap-3 cursor-pointer px-3 py-2 rounded-lg hover:bg-accent transition"
+              >
+                <Avatar className="h-9 w-9">
+                  <AvatarImage src={user?.avatar} />
+                  <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
+                </Avatar>
 
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-3 hover:bg-orange-50 text-red-500 transition"
+                <div className="hidden sm:block text-left">
+                  <p className="text-sm font-medium">{user?.first_name || "Student"}</p>
+                </div>
+              </div>
+
+              {/* Dropdown */}
+              <AnimatePresence>
+                {open && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute right-0 mt-2 w-44 rounded-lg border border-border bg-background shadow-lg"
                   >
-                    Logout
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    <button
+                      onClick={() => {
+                        navigate("/dashboard");
+                        setOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-accent transition"
+                    >
+                      Dashboard
+                    </button>
+
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2 hover:bg-accent text-red-500 transition"
+                    >
+                      Logout
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
-      </div>
+      </nav>
     );
   }
 
