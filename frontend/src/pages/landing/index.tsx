@@ -9,6 +9,8 @@ const HomePage = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
 
+
+
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-orange-50 via-white to-orange-50 overflow-hidden">
       
