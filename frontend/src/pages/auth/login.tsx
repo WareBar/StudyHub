@@ -19,17 +19,17 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLogging, setIsLogging] = useState(false);
-  const { login, loginWithGoogle} = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e:React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLogging(true);
 
     const result = await login(email, password);
     if (result.success) {
       toast.success("Login successful!");
-      navigate("/");
+      navigate("/dashboard");
     } else {
       if (result.error.detail) {
         toast.error(result.error.detail);
@@ -45,7 +45,7 @@ export default function LoginPage() {
   };
 
   //Handle Google OAuth success
-  const handleGoogleSuccess = async (credentialResponse) => {
+  const handleGoogleSuccess = async credentialResponse => {
     const token = credentialResponse.credential;
     const result = await loginWithGoogle(token);
 
@@ -71,9 +71,7 @@ export default function LoginPage() {
                 <FieldGroup>
                   <div className="flex flex-col items-center gap-2 text-center">
                     <h1 className="text-2xl font-bold">Welcome back</h1>
-                    <p className="text-muted-foreground text-balance">
-                      Login to your account
-                    </p>
+                    <p className="text-muted-foreground text-balance">Login to your account</p>
                   </div>
 
                   {/* Email + Password */}
@@ -84,7 +82,7 @@ export default function LoginPage() {
                       type="email"
                       placeholder="m@example.com"
                       required
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={e => setEmail(e.target.value)}
                     />
                   </Field>
                   <Field>
@@ -101,7 +99,7 @@ export default function LoginPage() {
                       id="password"
                       type="password"
                       required
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={e => setPassword(e.target.value)}
                     />
                   </Field>
 
@@ -157,8 +155,8 @@ export default function LoginPage() {
           </Card>
 
           <FieldDescription className="px-6 text-center">
-            By clicking continue, you agree to our{" "}
-            <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+            By clicking continue, you agree to our <a href="#">Terms of Service</a> and{" "}
+            <a href="#">Privacy Policy</a>.
           </FieldDescription>
         </div>
       </div>
