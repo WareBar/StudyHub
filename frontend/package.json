@@ -22,11 +22,8 @@
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.553.0",
     "next-themes": "^0.4.6",
-<<<<<<< HEAD
     "peerjs": "^1.5.5",
-=======
     "radix-ui": "^1.4.3",
->>>>>>> 92e26b9afed2d2424394ca822a21300be633a7b3
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-hot-toast": "^2.6.0",

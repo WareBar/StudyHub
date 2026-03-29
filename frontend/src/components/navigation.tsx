@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Users, Calendar, Bell, Menu, X, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import icon from "@/assets/icon2.png";
+import { useAuth } from "@/context/AuthContext";
 
 interface NavbarProps {
   isAuthenticated?: boolean;
@@ -13,6 +14,8 @@ interface NavbarProps {
 export function Navbar({ isAuthenticated = false }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  // get the user
+  const {user} = useAuth();
 
   const navLinks = isAuthenticated
     ? [
@@ -72,7 +75,11 @@ export function Navbar({ isAuthenticated = false }: NavbarProps) {
                     size="sm"
                     className="cursor-pointer hover:ring-primary transition-all"
                   >
-                    <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=student1" />
+                    {
+                      user && <>
+                      <AvatarImage src={user.avatar} />
+                      </>
+                    }
                     <AvatarFallback>JS</AvatarFallback>
                   </Avatar>
                 </Link>

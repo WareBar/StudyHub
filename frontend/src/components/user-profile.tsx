@@ -6,8 +6,9 @@ import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import icon from "@/assets/icon2.png";
 
-const UserProfile = ({ user, variant = "dashboard" }) => {
-  const { logout } = useAuth();
+
+const UserProfile = ({ variant = "dashboard" }) => {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -33,6 +34,9 @@ const UserProfile = ({ user, variant = "dashboard" }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+
+
 
   // 🔥 LANDING NAV VERSION
   if (variant === "landing") {

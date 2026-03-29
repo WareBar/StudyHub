@@ -13,9 +13,6 @@ interface Participant {
 }
 
 const VideoRoom: React.FC<VideoRoomProps> = ({ roomId }) => {
-
-
-
   const peer = useRef<Peer | null>(null)
   const socket = useRef<WebSocket | null>(null)
   const peers = useRef<{ [key: string]: MediaConnection }>({})
@@ -25,8 +22,6 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ roomId }) => {
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({})
 
 
-
-
   
   useEffect(() => {
     console.log("starting VideoRoom for room:", roomId)
@@ -34,7 +29,7 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ roomId }) => {
     // setting the connection to the webscoket
     try {
       socket.current = new WebSocket(
-        `ws://127.0.0.1:8000/ws/video/${roomId}/`
+        `wss://bmg8q0kw-8000.asse.devtunnels.ms/ws/video/${roomId}/`
       )
 
       socket.current.onopen = () => {
@@ -42,11 +37,11 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ roomId }) => {
       }
 
       socket.current.onerror = (error) => {
-        console.error("❌ WebSocket error:", error)
+        console.error("WebSocket error:", error)
       }
 
       socket.current.onclose = () => {
-        console.log("🔴socket closed")
+        console.log("socket closed")
       }
 
     } catch (err) {
@@ -124,6 +119,7 @@ const VideoRoom: React.FC<VideoRoomProps> = ({ roomId }) => {
           })
 
           call.on("close", () => {
+            toast.info(`${call.peer} left`)
             console.log("Call closed:", call.peer)
             removeParticipant(call.peer)
           })
