@@ -1,0 +1,14 @@
+# Python cache (anywhere in repo)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments (optional but common)
+venv/
+.env/
+.venv/
+
+# Python build / packaging
+build/
+dist/
+*.egg-info/

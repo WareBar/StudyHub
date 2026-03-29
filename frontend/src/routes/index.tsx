@@ -9,6 +9,8 @@ import GroupsFinderPage from "@/pages/GroupsPage";
 import SchedulePage from "@/pages/SchedulePage";
 import ProfilePage from "@/pages/profile";
 import GroupDetailsPage from "@/pages/GroupsPage/GroupDetailsPage";
+import ClassroomPage from "@/pages/hub/classroom-page";
+
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -20,6 +22,7 @@ export const router = createBrowserRouter(
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
       </Route>
+        <Route path="/classroom" element={<ClassroomPage/>}/>
 
       {/* For logged in users only */}
       <Route element={<ProtectedRoute />}>
@@ -28,6 +31,7 @@ export const router = createBrowserRouter(
         <Route path="/groups/:id" element={<GroupDetailsPage />} />
         <Route path="/schedule" element={<SchedulePage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        {/* <Route path="/classroom" element={<ClassroomPage/>}/> */}
       </Route>
     </>,
   ),
