@@ -2,6 +2,7 @@ from core.validators import DateRangeValidator
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
+from study.permissions import GroupPermission
 
 class DateFilterViewSetMixin:
     date_field = "created_at"
@@ -19,22 +20,22 @@ class DateFilterViewSetMixin:
         DateRangeValidator.validate(start_date, end_date)
         return qs.between(self.date_field, start_date, end_date)
 
- 
-class PermissionMixin:
-    """
-    Mixin to handle common permission logic:
-    - list: AllowAny
-    - others: IsAdminUser + IsAuthenticated
-    """
 
-    def get_permissions(self):
-        if self.action == "list":
-            permission_classes = [AllowAny]
-        else:
-            permission_classes = [IsAdminUser, IsAuthenticated]
+class SearchMixin:
+    search_fields = []
 
-        return [permission() for permission in permission_classes]
-    
+    def filter_queryset(self, qs):
+        qs = super().filter_queryset(qs)
+
+        keyword = self.request.query_params.get("search")
+
+        if keyword:
+            qs = qs.search(self.search_fields, keyword)
+
+        return qs
+
+
+
 
   
 class AdminOnlyMixin:
@@ -43,3 +44,15 @@ class AdminOnlyMixin:
     Any ViewSet inheriting this becomes admin-protected.
     """
     permission_classes = [IsAdminUser, IsAuthenticated]
+
+
+class GroupRBACMixin:
+    """
+    Simply wires GroupPermission into any ModelViewSet.
+    Subclasses only need to declare resource_name.
+
+    Example:
+        class SessionViewset(GroupRBACMixin, ModelViewSet):
+            resource_name = "session"
+    """
+    permission_classes = [GroupPermission]
