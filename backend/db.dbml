@@ -1,0 +1,69 @@
+Table User {
+    id int pk
+    username varchar
+    email email
+    first_name varchar
+    last_name varchar
+}
+
+
+Table StudyGroup {
+    id int pk
+    name varchar
+    description varchar
+    subject fk
+    max_members int
+}
+
+Table Subject {
+    id int pk
+    name varchar
+}
+
+Table Member {
+    group fk
+    user fk
+}
+
+Table Session {
+    group fk
+    execution_date varchar
+    location varchar
+    duration varchar
+    notes varchar
+}
+
+Table Attendance {
+    group fk
+    user fk
+    session fk
+    status varchar
+    check_in_time varchar
+}
+
+Table Chat {
+    id int pk
+    content_type varchar
+    content varchar
+    group fk
+    sender fk
+    reply_to fk
+}
+
+
+Table Notification {
+    id int pk
+    content varchar
+    is_read boolean
+    type varchar
+    to fk
+} 
+
+Ref: StudyGroup.id < Attendance.group
+Ref: StudyGroup.id < Member.group
+Ref: StudyGroup.id < Session.group
+Ref: StudyGroup.subject > Subject.id
+Ref: Chat.group > StudyGroup.id
+Ref: Chat.sender > User.id
+Ref: Chat.reply_to > Chat.id 
+Ref: Notification.to > User.id 

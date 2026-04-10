@@ -1,0 +1,180 @@
+{
+  "version": "1.0.0",
+  "darkMode": true,
+  "gridEnabling": false,
+  "detailLevel": "All",
+  "tablePositions": [
+    {
+      "name": "User",
+      "schemaName": "public",
+      "x": 0,
+      "y": 50
+    },
+    {
+      "name": "StudyGroup",
+      "schemaName": "public",
+      "x": 264.55517578125,
+      "y": 50
+    },
+    {
+      "name": "Subject",
+      "schemaName": "public",
+      "x": 520.96630859375,
+      "y": 50
+    },
+    {
+      "name": "Member",
+      "schemaName": "public",
+      "x": 771.5439453125,
+      "y": 50
+    },
+    {
+      "name": "Session",
+      "schemaName": "public",
+      "x": 0,
+      "y": 292
+    },
+    {
+      "name": "Attendance",
+      "schemaName": "public",
+      "x": 264.55517578125,
+      "y": 292
+    },
+    {
+      "name": "Chat",
+      "schemaName": "public",
+      "x": 520.96630859375,
+      "y": 196
+    },
+    {
+      "name": "Notification",
+      "schemaName": "public",
+      "x": 771.5439453125,
+      "y": 196
+    }
+  ],
+  "tableGroupCollapseStates": [],
+  "stickyNoteLayouts": [],
+  "referencePaths": [
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "StudyGroup",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "group"
+      ],
+      "secondTableName": "Attendance",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "StudyGroup",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "group"
+      ],
+      "secondTableName": "Member",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "StudyGroup",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "group"
+      ],
+      "secondTableName": "Session",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "subject"
+      ],
+      "firstTableName": "StudyGroup",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "Subject",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "group"
+      ],
+      "firstTableName": "Chat",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "StudyGroup",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "sender"
+      ],
+      "firstTableName": "Chat",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "User",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "reply_to"
+      ],
+      "firstTableName": "Chat",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "Chat",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "to"
+      ],
+      "firstTableName": "Notification",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "User",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    }
+  ]
+}
