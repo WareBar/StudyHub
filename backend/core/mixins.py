@@ -36,8 +36,6 @@ class SearchMixin:
 
 
 
-
-  
 class AdminOnlyMixin:
     """
     Restricts access to admin users only.
@@ -56,3 +54,30 @@ class GroupRBACMixin:
             resource_name = "session"
     """
     permission_classes = [GroupPermission]
+
+class UserRelatedMixin:
+    """
+    Filters queryset based on user relationship.
+    Supports:
+    - ?type=my
+    """
+    user_lookup_field = "user"
+    extra_filters = {}
+
+    def filter_queryset(self, queryset):
+        queryset = super().filter_queryset(queryset) #runs previous filters then apply this filter
+
+        response_type = self.request.query_params.get("type")
+        if response_type == "my":
+            # checks auth
+            user = self.request.user
+            if not user.is_authenticated:
+                return queryset.none()      
+            filters = {
+                self.user_lookup_field: self.request.user
+            }
+            filters.update(self.extra_filters)
+
+            return queryset.filter(**filters)
+
+        return queryset
