@@ -1,3 +1,13 @@
 from django.contrib import admin
 
-# Register your models here.
+from study.models import (
+    StudyGroup,
+    MemberShip,
+    Attendance,
+    Session
+)
+
+admin.site.register(StudyGroup)
+admin.site.register(MemberShip)
+admin.site.register(Attendance)
+admin.site.register(Session)
