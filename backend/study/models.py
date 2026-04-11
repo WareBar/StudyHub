@@ -25,7 +25,7 @@ class StudyGroup(BaseModel):
     def __str__(self):
         return self.name
     
-class Subject(BaseModel):
+class Subject(BaseModel):   
     name = models.CharField(max_length=50, unique=True, blank=False, null=False)
     def __str__(self):
         return self.name
@@ -77,6 +77,13 @@ class MemberShip(BaseModel):
         return f"{self.user.username}'s {self.group.name} membership"
 
 class Session(BaseModel):
+    # add status here if,session is finished, or schedlued or on-going
+    # to track the session status easily and not relying on the start and end attr
+    class SessionStatus(models.TextChoices):
+        FINISHED = "finished"
+        SCHEDULED = "scheduled"
+        ON_GOING =  "on_going"
+        CANCELLED = "cancelled"
     class SessionTypes(models.TextChoices):
         ONLINE = "online"
         PHYSICAL = "physical"
@@ -91,6 +98,11 @@ class Session(BaseModel):
         max_length=10,
         choices=SessionTypes.choices,
         default=SessionTypes.ONLINE
+    )
+    status = models.CharField(
+        max_length=20, 
+        choices=SessionStatus.choices,
+        default=SessionStatus.SCHEDULED
     )
     start = models.DateTimeField()
     end = models.DateTimeField()
