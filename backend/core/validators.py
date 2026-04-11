@@ -26,3 +26,19 @@ class DateRangeValidator:
             raise ValidationError({
                 "date": "start_date must be before end_date."
             })
+        
+
+def require_params(data: dict, *fields):
+    """
+    Ensures required fields exist in request data.
+    Raises ValidationError if any are missing.
+    """
+
+    missing = [field for field in fields if field not in data or data[field] is None]
+
+    if missing:
+        raise ValidationError({
+            "detail": f"Missing required fields: {', '.join(missing)}",
+            "code": "MISSING_PARAMETERS",
+            "fields": missing
+        })
