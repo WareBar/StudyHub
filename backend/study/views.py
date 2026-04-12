@@ -19,6 +19,7 @@ from django.utils.timezone import now
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from core.mixins import GroupRBACMixin, SearchMixin, UserRelatedMixin
+from core.pagination import CustomPagination
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 # services
@@ -32,15 +33,16 @@ from study.services import (
 from core.validators import require_params
 
 class StudyGroupViewset(GroupRBACMixin, UserRelatedMixin,SearchMixin, ModelViewSet):
-    queryset = StudyGroup.objects.select_related('creator','subject').prefetch_related('membership__user').all()
+    queryset = StudyGroup.objects.select_related('creator','subject').prefetch_related('memberships__user').all()
     serializer_class = StudyGroupSerializer
+    pagination_class = CustomPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['subject', 'creator','max_members']
     search_fields = ["name"]
     resource_name = "group"
-    user_lookup_field = "membership__user"
+    user_lookup_field = "memberships__user"
     extra_filters = {
-        "membership__status": MemberShip.MemberShipStatus.ACCEPTED
+        "memberships__status": MemberShip.MemberShipStatus.ACCEPTED
     }
 
     # invite
@@ -56,12 +58,14 @@ class StudyGroupViewset(GroupRBACMixin, UserRelatedMixin,SearchMixin, ModelViewS
 class SubjectViewset(SearchMixin, ModelViewSet):
     queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
+    pagination_class = CustomPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['name']
 
 class MemberShipViewset(GroupRBACMixin, SearchMixin, ModelViewSet):
     queryset = MemberShip.objects.select_related('group','user').all()
     serializer_class = MemberShipSerializer
+    pagination_class = CustomPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['user']
     resource_name = "membership"
@@ -72,6 +76,7 @@ class MemberShipViewset(GroupRBACMixin, SearchMixin, ModelViewSet):
 class SessionViewset(GroupRBACMixin, SearchMixin, ModelViewSet):
     queryset = Session.objects.select_related('group').all()
     serializer_class = SessionSerializer
+    pagination_class = CustomPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['group', 'session_type']
     resource_name = "session"
@@ -83,10 +88,12 @@ class SessionViewset(GroupRBACMixin, SearchMixin, ModelViewSet):
             limit = int(request.query_params.get("limit", 2))
         except ValueError:
             limit = 2
-
+        current_time = now()
         upcoming_sessions = Session.objects.filter(
-            group__membership__user=request.user,
-            start__gte=now()
+            group__memberships__user=request.user,
+            group__memberships__status=MemberShip.MemberShipStatus.ACCEPTED,
+            start__gte=current_time,
+            status=Session.SessionStatus.SCHEDULED
         ).order_by("start")[:limit]  # earliest upcoming, limit to 2
 
         serializer = SessionSerializer(upcoming_sessions, many=True)
@@ -112,6 +119,7 @@ class SessionViewset(GroupRBACMixin, SearchMixin, ModelViewSet):
 class AttendanceViewset(GroupRBACMixin, UserRelatedMixin, ModelViewSet):
     queryset = Attendance.objects.select_related('group','user','session').all()
     serializer_class = AttendanceSerializer
+    pagination_class = CustomPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['group', 'user','session']
     resource_name = "attendance"
