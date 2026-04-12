@@ -63,7 +63,7 @@ class StudyGroupSerializer(ModelSerializer):
     subject_detail = SubjectSerializer(source="subject", read_only=True)
     # not foreignkey, just related
     # automatically no need to include source attribute in serializer arguments
-    membership = MemberShipSerializer(many=True, read_only=True)
+    memberships = MemberShipSerializer(many=True, read_only=True)
     # so we only need the id to pass for save or data creation
     creator = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), write_only=True)
     subject = serializers.PrimaryKeyRelatedField(queryset=Subject.objects.all(), write_only=True)

@@ -12,7 +12,7 @@ class StudyGroup(BaseModel):
         null=False,
         blank=False,
         on_delete=models.DO_NOTHING,
-        related_name="subject"
+        related_name="groups"
     )
     max_members = models.IntegerField(null=False, blank=False, default=6)
     creator = models.ForeignKey(
@@ -20,7 +20,7 @@ class StudyGroup(BaseModel):
         null=False,
         blank=False,
         on_delete=models.DO_NOTHING,
-        related_name="creator"
+        related_name="created_groups"
     )
     def __str__(self):
         return self.name
@@ -46,14 +46,14 @@ class MemberShip(BaseModel):
         null=False,
         blank=False,
         on_delete=models.CASCADE,
-        related_name="membership"
+        related_name="memberships"
     )
     user = models.ForeignKey(
         User,
         null=False,
         blank=False,
         on_delete=models.CASCADE,
-        related_name="members"
+        related_name="memberships"
     )
     status = models.CharField(
         max_length=10,
@@ -127,12 +127,14 @@ class Attendance(BaseModel):
         null=False,
         blank=False,
         on_delete=models.CASCADE,
+        related_name="attendances"
     )
     user = models.ForeignKey(
         User,
         null=False,
         blank=False,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name="attendances"
     )
     session = models.ForeignKey(
         Session,

@@ -78,8 +78,8 @@ class UserViewset(ModelViewSet):
 
 
         sessions = Session.objects.filter(
-            group__membership__user=user,
-            group__membership__status=MemberShip.MemberShipStatus.ACCEPTED,
+            group__memberships__user=user,
+            group__memberships__status=MemberShip.MemberShipStatus.ACCEPTED,
             start__gte=last_week_start,  # ← double underscore
             start__lt=this_week_end      # ← double underscore
         )
@@ -110,8 +110,6 @@ class UserViewset(ModelViewSet):
 
         total_hours = round(total_seconds / 3600, 2)
 
-
-
         data = [
             {
                 "title":"Study Groups",
@@ -120,7 +118,7 @@ class UserViewset(ModelViewSet):
             },
             {
                 "title":"Sessions This Week",
-                "content": this_week_sessions if sessions.count() > 0 else 0,
+                "content": this_week_sessions.count() if sessions.count() > 0 else 0,
                 "sub_content":f"{sessions_difference if sessions.count() > 0 else 0} last week"
             },
             {
