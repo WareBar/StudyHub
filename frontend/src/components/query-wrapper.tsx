@@ -32,7 +32,7 @@ const QueryWrapper = <T,>({
   children,
   noResultsComponent
 }: QueryWrapperProps<T>) => {
-
+  console.log(data)
   if (isLoading) return <LoadingOne/>;
 
   if (error) {
@@ -46,7 +46,7 @@ const QueryWrapper = <T,>({
 
   if (!data) return <p>No data found</p>;
 
-  if (data?.data?.results?.length === 0 || data?.results?.length === 0) {
+  if (data?.data?.results?.length === 0 || data?.results?.length === 0 || data?.length === 0) {
     return <>{noResultsComponent ?? "No Record yet"}</>
   }
 
