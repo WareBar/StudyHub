@@ -33,8 +33,9 @@ class Subject(BaseModel):
 class MemberShip(BaseModel):
     class MemberShipStatus(models.TextChoices):
         ACCEPTED = "accepted"
-        REJECTED = "rejected",
+        REJECTED = "rejected"
         PENDING = "pending"
+        CANCELLED = "cancelled"
 
     class Role(models.TextChoices):
         CREATOR = "creator"
@@ -143,6 +144,14 @@ class Attendance(BaseModel):
         on_delete=models.DO_NOTHING,
         related_name="attendances"
     )
+    status = models.CharField(
+        max_length=20,
+        choices=AttendanceStatus.choices,
+        default=AttendanceStatus.ABSENT
+    )
+    # to determine if the user left or in the attendance before sending a heartbeat
+    is_active = models.BooleanField(default=True)
+
     # to calculate the users study time in the session
     check_in_time = models.DateTimeField(default=timezone.now)
     check_out_time = models.DateTimeField(null=True, blank=True)
