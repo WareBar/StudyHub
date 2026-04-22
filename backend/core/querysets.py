@@ -4,7 +4,7 @@ intended to be resuable and chainable filters
 
 """
 from django.db import models
-
+from django.db.models import Q
 
 class BaseQuerySet(models.QuerySet):
     """
@@ -21,7 +21,12 @@ class BaseQuerySet(models.QuerySet):
         return self.filter(**filters)
 
     # Simple search
-    def search(self, field, keyword):
+    def search(self, fields, keyword):
         if not keyword:
             return self
-        return self.filter(**{f"{field}__icontains": keyword})
+
+        query = Q()
+        for field in fields:
+            query |= Q(**{f"{field}__icontains": keyword})
+
+        return self.filter(query)
