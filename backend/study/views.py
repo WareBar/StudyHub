@@ -14,36 +14,85 @@ from study.serializers import (
     SessionSerializer,
     AttendanceSerializer
 )
-
+from django.db.models import Count, Q
+from rest_framework.exceptions import ValidationError, PermissionDenied
 from django.utils.timezone import now
 from rest_framework.decorators import action
+from rest_framework import status
 from django_filters.rest_framework import DjangoFilterBackend
 from core.mixins import GroupRBACMixin, SearchMixin, UserRelatedMixin
 from core.pagination import CustomPagination
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
 # services
 from study.services import (
     StudyGroupService,
     SessionService,
-    AttendanceService
+    AttendanceService, MembershipService
 )
 
 # validators
 from core.validators import require_params
+# for attendance history
+from django.db.models.functions import TruncDate, JSONObject
+from django.contrib.postgres.aggregates import ArrayAgg
+
 
 class StudyGroupViewset(GroupRBACMixin, UserRelatedMixin,SearchMixin, ModelViewSet):
     queryset = StudyGroup.objects.select_related('creator','subject').prefetch_related('memberships__user').all()
     serializer_class = StudyGroupSerializer
     pagination_class = CustomPagination
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['subject', 'creator','max_members']
-    search_fields = ["name"]
-    resource_name = "group"
-    user_lookup_field = "memberships__user"
+    filterset_fields = ['subject', 'creator','max_members','memberships__role']
+    search_fields = ["name", "description"] #SearchMixin
+    resource_name = "group" #GroupRBACMixin
+    user_lookup_field = "memberships__user" #UserRelatedMixin
     extra_filters = {
-        "memberships__status": MemberShip.MemberShipStatus.ACCEPTED
+        "memberships__status": MemberShip.MemberShipStatus.ACCEPTED #GroupRBACMixin
     }
+
+    # getting the study group attendnace history agggreagated by date
+    """
+    ENDPOINT -> /study-group/{id}/attendance_history/
+    """
+    @action(detail=True, methods=["get"],permission_classes=[IsAuthenticated])
+    def attendance_history(self, request, pk=None):
+        group = self.get_object()
+        # check first if user is a member
+        user = request.user
+        is_member = MemberShip.objects.filter(
+            group=group,
+            user=user,
+            status=MemberShip.MemberShipStatus.ACCEPTED
+        ).exists()
+
+        if not is_member:
+            raise PermissionDenied({
+            "detail": f"You are not a member of {group.name}",
+            "code": "PERMISSION_DENIED",
+            })
+
+        attendances = Attendance.objects.filter(group=group)
+        result = (
+            attendances
+            .annotate(date=TruncDate("created_at"))
+            .values("date")
+            .annotate(
+                users=ArrayAgg(
+                    JSONObject(
+                        id="user__id",
+                        username="user__username",
+                        avatar="user__avatar",
+                    ),
+                    distinct=True
+                )
+            )
+            .order_by("date")
+        )
+        return Response(result)
+
+    
 
     # invite
     @action(detail=False, methods=["post"],permission_classes=[IsAuthenticated])
@@ -54,7 +103,27 @@ class StudyGroupViewset(GroupRBACMixin, UserRelatedMixin,SearchMixin, ModelViewS
         invited_user_id = data["invited_user_id"]
         result = StudyGroupService.invite(group_id, invited_user_id)
         return Response(result)
+
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def join_request(self, request, pk=None):
+        result = StudyGroupService.membership_request(
+            group_id=pk,
+            user_id=request.user.id,
+            request_type="join"
+        )
+        return Response(result)
     
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def cancel_request(self, request, pk=None):
+        result = StudyGroupService.membership_request(
+            group_id=pk,
+            user_id=request.user.id,
+            request_type="cancel"
+        )
+        return Response(result)
+
+
 class SubjectViewset(SearchMixin, ModelViewSet):
     queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
@@ -67,11 +136,60 @@ class MemberShipViewset(GroupRBACMixin, SearchMixin, ModelViewSet):
     serializer_class = MemberShipSerializer
     pagination_class = CustomPagination
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['user']
+    filterset_fields = ['user', 'group', 'role', 'status']
     resource_name = "membership"
+    search_fields = ["user__username", "user__email", "user__first_name","user__last_name"] #SearchMixin
 
-    # check if max member for the group is reached, if yes, return error, if not then proceed
+    # for stats like total, accepted, rejected, pendning, canmclled
+    @action(detail=False, methods=["get"],permission_classes=[IsAuthenticated])
+    def stats(self, request):
+        """
+        Returns membership counts grouped by status for a given group.
+        """
+        group_id = request.query_params.get("group_id")
+        if not group_id:
+            raise ValidationError({
+                "detail":"Missing group_id in the query params",
+                "code":"MISSING_QUERY_PARAMS"
+            })
+        
+        stats = self.queryset.filter(group_id=group_id).aggregate(
+            total_request=Count("id"),
+            accepted=Count("id", filter=Q(status="accepted")),
+            pending=Count("id", filter=Q(status="pending")),
+            rejected=Count("id", filter=Q(status="rejected")),
+            cancelled=Count("id", filter=Q(status="cancelled")),
+        )
 
+        stats_list = [
+            {"label": "Total Requests", "value": stats["total_request"]},
+            {"label": "Accepted",       "value": stats["accepted"]},
+            {"label": "Pending",        "value": stats["pending"]},
+            {"label": "Rejected",       "value": stats["rejected"]},
+            {"label": "Cancelled",      "value": stats["cancelled"]},
+        ]
+
+        return Response(stats_list, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["post"],permission_classes=[IsAuthenticated])
+    def update_member_status(self, request):
+        data = require_params(request.data, 'group_id','new_status', "member_id")
+        group_id = data["group_id"]
+        member_id = data["member_id"]
+        new_status = data["new_status"]
+
+        result = MembershipService.handle_status_update(group_id=group_id, member_id=member_id,new_status=new_status, acting_user_id=request.user.id)
+        return Response(result)
+    
+
+    @action(detail=False, methods=["post"],permission_classes=[IsAuthenticated])
+    def update_member_role(self, request):
+        data = require_params(request.data, 'group_id','new_role', "member_id")
+        group_id = data['group_id']
+        member_id = data["member_id"]
+        new_role = data["new_role"]
+        result = MembershipService.handle_role_update(group_id=group_id, member_id=member_id, new_role=new_role, acting_user_id=request.user.id)
+        return Response(result)
 
 class SessionViewset(GroupRBACMixin, SearchMixin, ModelViewSet):
     queryset = Session.objects.select_related('group').all()
@@ -125,6 +243,7 @@ class AttendanceViewset(GroupRBACMixin, UserRelatedMixin, ModelViewSet):
     resource_name = "attendance"
     user_lookup_field = "user"
     
+    # the client will hit this api every 30 second to record the activeness of the user
     @action(detail=False, methods=["post"], permission_classes=[IsAuthenticated])
     def heartbeat(self, request):
         data = require_params(request.data, "session_id")
