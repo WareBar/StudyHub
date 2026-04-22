@@ -171,6 +171,11 @@ class GroupPermission(BasePermission):
         if view.action == "list":
             return True
 
+        # public read for group detail
+        resource_name = getattr(view, "resource_name", None)
+        if view.action == "retrieve" and resource_name == "group":
+            return True
+
 
         if not request.user or not request.user.is_authenticated:
             self.message = "Authentication required."
@@ -193,7 +198,6 @@ class GroupPermission(BasePermission):
         if required_perm not in allowed_perms:
             self.message = "You do not have permission to perform this action."
             return False
-
         return True
 
     def has_permission(self, request, view):
@@ -201,3 +205,4 @@ class GroupPermission(BasePermission):
 
     def has_object_permission(self, request, view, obj):
         return self._check(request, view, obj=obj)
+    
