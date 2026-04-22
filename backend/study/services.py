@@ -13,25 +13,219 @@ from rest_framework.exceptions import ValidationError, NotFound, PermissionDenie
 from django.db import transaction
 
 
-class StudyGroupService:
+class BaseService:
     @staticmethod
-    def invite(group_id, invited_user_id):
-        # creating membership pending
-        group = get_object_or_404(StudyGroup, id=group_id)
-        invited_user = get_object_or_404(User, id=invited_user_id)
-        membership, created = MemberShip.objects.get_or_create(
-            group=group,
-            user=invited_user
-        )
-        if not created:
+    def _get_membership(group, user):
+        membership = MemberShip.objects.filter(group=group, user=user).first()
+        
+        if membership is None:
             raise ValidationError({
-                "detail": f'Invitation invalid, {invited_user.username}"s already a member',
-                "code": "INVITATION_INVALID"
+                "detail": "Membership not found.",
+                "code": "NOT_FOUND"
             })
-        return {"message":f"{invited_user.username} invited to {group.name}"}
+        
+        return membership
+    @staticmethod
+    def _get_group_and_user(group_id: int, user_id: int):
+        group = get_object_or_404(StudyGroup, id=group_id)
+        user = get_object_or_404(User, id=user_id)
+        return group, user
 
 
-class SessionService:
+class StudyGroupService(BaseService):
+    @staticmethod
+    def _get_membership(group, user):
+        # returns None if not found — join/cancel logic depends on this
+        return MemberShip.objects.filter(group=group, user=user).first()
+
+    @staticmethod
+    @transaction.atomic
+    def _handle_join(group, user, membership):
+        if membership:
+            if membership.status == MemberShip.MemberShipStatus.ACCEPTED:
+                raise ValidationError({
+                    "detail": "You are already a member",
+                    "code": "ALREADY_MEMBER"
+                })
+
+            if membership.status == MemberShip.MemberShipStatus.PENDING:
+                raise ValidationError({
+                    "detail": "Join request already pending",
+                    "code": "ALREADY_PENDING"
+                })
+
+        membership = MemberShip.objects.create(
+            group=group,
+            user=user,
+            status=MemberShip.MemberShipStatus.PENDING
+        )
+
+        return {
+            "detail": "Join request sent",
+            "status": membership.status
+        }
+    
+    @staticmethod
+    @transaction.atomic
+    def _handle_cancel(group, user, membership):
+        if not membership:
+            raise ValidationError({
+                "detail": "No membership request found",
+                "code": "NO_MEMBERSHIP"
+            })
+
+        if membership.status != MemberShip.MemberShipStatus.PENDING:
+            raise ValidationError({
+                "detail": "Only pending requests can be cancelled",
+                "code": "INVALID_CANCEL"
+            })
+
+        membership.delete()
+
+        return {
+            "detail": "Join request cancelled",
+            "status": "none"
+        }
+
+    @staticmethod
+    def invite(group_id: int, invited_user_id: int):
+        group, invited_user = StudyGroupService._get_group_and_user(group_id, invited_user_id)
+        membership = StudyGroupService._get_membership(group, invited_user)
+
+        if membership:
+            if membership.status == MemberShip.MemberShipStatus.ACCEPTED:
+                raise ValidationError({
+                    "detail": f"{invited_user.username} is already a member",
+                    "code": "ALREADY_MEMBER"
+                })
+
+            if membership.status == MemberShip.MemberShipStatus.PENDING:
+                raise ValidationError({
+                    "detail": f"{invited_user.username} already has a pending request/invite",
+                    "code": "ALREADY_PENDING"
+                })
+
+        MemberShip.objects.create(
+            group=group,
+            user=invited_user,
+            status=MemberShip.MemberShipStatus.PENDING
+        )
+
+        return {
+            "message": f"{invited_user.username} invited to {group.name}",
+            "status": "pending"
+        }
+
+    @staticmethod
+    def membership_request(request_type: str, group_id: int, user_id: int):
+        request_type = request_type.lower()
+
+        if request_type.lower() not in ["join", "cancel"]:
+            raise ValidationError({
+                "detail": f"{request_type} is not a valid request_type",
+                "code": "INVALID_REQUEST_TYPE"
+            })
+
+        group, user = StudyGroupService._get_group_and_user(group_id, user_id)
+        membership = StudyGroupService._get_membership(group, user)
+
+        actions = {
+            "join": StudyGroupService._handle_join,
+            "cancel": StudyGroupService._handle_cancel,
+        }
+
+        return actions[request_type](group, user, membership)
+
+
+class MembershipService(BaseService):
+
+    @staticmethod
+    def _check_group_capacity(group):
+        # get the number of members of the group
+        members_count = group.memberships.filter(status=MemberShip.MemberShipStatus.ACCEPTED).count()
+    
+        # get the capacity
+        maximum_capacity = group.max_members
+        
+        if members_count >= maximum_capacity:
+            return "full"
+        elif members_count == 0:
+            return "empty"
+        else:
+            return "available"
+
+    @staticmethod
+    def _update_membership_status(group, user, new_status: str) -> dict:
+        """Fetches membership and updates its status."""
+
+        valid_statuses = [status.value for status in MemberShip.MemberShipStatus]
+        
+        if new_status not in valid_statuses:
+            raise ValidationError({
+                "detail": f"Invalid status '{new_status}'. Valid statuses are: {valid_statuses}",
+                "code": "INVALID_STATUS"
+            })
+    
+        membership = MembershipService._get_membership(group=group, user=user)
+        membership.status = new_status
+        membership.save()
+        return {"message": {"updated": True}}
+
+    @staticmethod
+    def _update_membership_role(group, member, new_role:str) -> dict:
+        """Fetches membership and updates its roles."""
+        membership = MembershipService._get_membership(group=group, user=member)
+        membership.role = new_role
+        membership.save()
+        return {"message": {"updated": True}}
+
+    @staticmethod
+    def _check_user_role(group, acting_user_id:int):
+        """raises permission denied if not creator or moderator"""
+        acting_user = get_object_or_404(MemberShip, user_id=acting_user_id, group=group)
+        if acting_user.role == MemberShip.Role.MEMBER:
+            raise PermissionDenied({
+                "detail":"You do NOT have permission for this action",
+                "code":"PERMISSION_DENIED"
+            })
+
+
+    @staticmethod
+    def handle_status_update(member_id: int, acting_user_id: int, group_id: int, new_status: str, ) -> dict:
+        group, member = MembershipService._get_group_and_user(group_id, member_id)
+        # check if authorized, raises exception if not authorized
+        MembershipService._check_user_role(group=group, acting_user_id=acting_user_id)
+
+        normalized_status = new_status.lower()
+
+        if (
+            normalized_status == MemberShip.MemberShipStatus.ACCEPTED
+            and (MembershipService._check_group_capacity(group) == "full")
+        ):
+            raise ValidationError({
+                "detail": "Study group is already at full capacity.",
+                "code": "REQUEST_DENIED",
+            })
+
+        return MembershipService._update_membership_status(group, member, normalized_status)
+
+    @staticmethod
+    def handle_role_update(member_id:int, acting_user_id: int, group_id:int, new_role:str) -> dict:
+        group, member = MembershipService._get_group_and_user(group_id, member_id)
+        # check if authorized, raises exception if not authorized
+        MembershipService._check_user_role(group=group, acting_user_id=acting_user_id)
+        normalized_role = new_role.lower()
+
+        if normalized_role == MembershipService._get_membership(group, member).role:
+            raise ValidationError({
+                "detail":f"{member.username} is already a {normalized_role}",
+                "code":"REQUEST_INVALID"
+            })        
+        return MembershipService._update_membership_role(group, member, normalized_role)
+
+
+
+class SessionService(BaseService):
     @staticmethod
     @transaction.atomic
     def join(session_id, user):
@@ -69,7 +263,8 @@ class SessionService:
         Attendance.objects.get_or_create(
             user=user,
             session=session,
-            defaults=defaults
+            defaults=defaults,
+            is_active=True
         )
 
         return {"message":{"joined":True}}
@@ -106,14 +301,18 @@ class SessionService:
 
             attendance.check_out_time = current_time
 
+
+        # set it to false
+        attendance.is_active = False
         attendance.save()
 
         return {"message":{"left":True}}
     
 
 
-class AttendanceService:
+class AttendanceService(BaseService):
     @staticmethod
+    @transaction.atomic
     def heartbeat(session_id, user):
         """
         ! stop heartbeat when tab hidden
@@ -133,10 +332,10 @@ class AttendanceService:
             })
         
         # the hearbeat shouldnt work if user already left the session hahaha
-        if attendance.check_out_time:
+        if not attendance.is_active:
             raise ValidationError({
-                "detail":"Session already ended",
-                "code":"SESSION_EXPIRED"
+                "detail":"You are not currently in the session",
+                "code":"NOT_IN_SESSION"
             })
         
         # add active time
@@ -150,3 +349,6 @@ class AttendanceService:
         attendance.save()
 
         return {"message":"Ok"}
+
+
+
