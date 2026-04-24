@@ -26,7 +26,6 @@ class SearchMixin:
 
     def filter_queryset(self, qs):
         qs = super().filter_queryset(qs)
-
         keyword = self.request.query_params.get("search")
 
         if keyword:

@@ -4,10 +4,17 @@ from django.contrib.auth.models import (
 )
 from django.utils import timezone
 from django.contrib.contenttypes.fields import GenericRelation
+from core.models import BaseModel
+from core.querysets import BaseQuerySet
 # from django.contrib.auth import get_user_model
 # User = get_user_model()
 
 class CustomUserManager(BaseUserManager):
+
+    def get_queryset(self):
+        return BaseQuerySet(self.model, using=self._db) 
+
+
     def create_user(self, username, email, last_name, first_name, password=None):
         """
         Creates and saves a User with the given username, name and password.
@@ -79,3 +86,33 @@ class User(AbstractBaseUser, PermissionsMixin):
         "Is the user a member of staff?"
         # Simplest possible answer: All admins are staff
         return self.is_admin
+    
+
+class Profile(BaseModel):
+    class EducationLevel(models.TextChoices):
+        GRADE_SCHOOL = "GRADE",    "Grade School"
+        JUNIOR_HIGH  = "JUNIOR",   "Junior High"
+        SENIOR_HIGH  = "SENIOR",   "Senior High"
+        COLLEGE      = "COLLEGE",  "College"
+        POSTGRAD     = "POSTGRAD", "Post Graduate"
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+
+    bio = models.TextField(blank=True)
+    subjects_of_interest = models.ManyToManyField(
+        "study.Subject",       # or just Subject if imported directly
+        blank=True,
+        related_name="subject_of_interest",
+    )
+
+
+    education_level = models.CharField(
+        max_length=10,
+        choices=EducationLevel.choices,
+        blank=True,
+    )
+
+    facebook  = models.URLField(blank=True)  # most universal in PH especially
+    github    = models.URLField(blank=True)  # relevant for tech learners
+    linkedin  = models.URLField(blank=True)  # college and above
+

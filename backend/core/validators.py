@@ -40,5 +40,7 @@ def require_params(data: dict, *fields):
         raise ValidationError({
             "detail": f"Missing required fields: {', '.join(missing)}",
             "code": "MISSING_PARAMETERS",
-            "fields": missing
+            "parameters": missing
         })
+    
+    return {field: data[field] for field in fields} 

@@ -3,7 +3,7 @@ SERIALIZER IS CONCERNED WITH DATA VALIDATION AND ETC CONCERCNING DATAS
 """
 
 
-from rest_framework.serializers import ModelSerializer
+from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from rest_framework import serializers
 from study.models import (
     StudyGroup,
@@ -12,11 +12,24 @@ from study.models import (
     Session,
     Attendance
 )
-from User.serializers import UserSerializer
+from User.simple_serializers import SimpleUserSerializer
 from User.models import User
+from django.utils import timezone
+
+
+# lightweight serializer
+class StudyGroupSimpleSerializer(ModelSerializer):
+    class Meta:
+        model = StudyGroup
+        fields = ["id", "name","description"]  # keep it minimal
+    
+class SessionSimpleSerializer(ModelSerializer):
+    class Meta:
+        model = Session
+        fields = ["id", "start", "end", "status"]
 
 class MemberShipSerializer(ModelSerializer):
-    user = UserSerializer(read_only=True)
+    user = SimpleUserSerializer(read_only=True)
     class Meta:
         model = MemberShip
         fields = "__all__"
@@ -43,24 +56,28 @@ class SubjectSerializer(ModelSerializer):
         model = Subject
         fields = "__all__"
 
+
 class StudyGroupSerializer(ModelSerializer):
     # foreign keys, means it required in the submission
-    creator_detail = UserSerializer(source="creator", read_only=True)
+    creator_detail = SimpleUserSerializer(source="creator", read_only=True)
     subject_detail = SubjectSerializer(source="subject", read_only=True)
-
-
     # not foreignkey, just related
     # automatically no need to include source attribute in serializer arguments
-    members = MemberShipSerializer(many=True, read_only=True)
-
+    memberships = SerializerMethodField()
     # so we only need the id to pass for save or data creation
     creator = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), write_only=True)
     subject = serializers.PrimaryKeyRelatedField(queryset=Subject.objects.all(), write_only=True)
+
+    # get the next session of the group
+    next_session = SerializerMethodField()
+    total_sessions = SerializerMethodField()
+    membership_status = SerializerMethodField()
+
     class Meta:
         model = StudyGroup
         fields = "__all__"
 
-
+    # auto create membership for the creator
     def create(self, validated_data):
         group   = StudyGroup.objects.create(**validated_data)
         MemberShip.objects.create(
@@ -71,8 +88,46 @@ class StudyGroupSerializer(ModelSerializer):
         )
         return group
 
+    # get accepted membership
+    def get_memberships(self, obj):
+        data = obj.memberships.filter(status=MemberShip.MemberShipStatus.ACCEPTED)
+        return MemberShipSerializer(data, many=True, read_only=True).data
+
+
+    def get_next_session(self, obj):
+        today = timezone.now()
+
+        next_session = Session.objects.filter(
+            group=obj,
+            status=Session.SessionStatus.SCHEDULED,
+            start__gte=today
+        ).order_by("start").first()
+
+        if next_session:
+            return SessionSimpleSerializer(next_session).data
+        return None
+    
+    def get_total_sessions(self, obj):
+        all_sessions = obj.sessions.all().count()
+        return all_sessions
+
+    # to check if the logged in user is member, not member, or has pending membership request
+    def get_membership_status(self, obj):
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return None
+        membership_instance = MemberShip.objects.filter(
+            user=request.user,
+            group=obj
+        ).first()
+
+        if not membership_instance: return None
+
+        return membership_instance.status
+            
+
 class SessionSerializer(ModelSerializer):
-    group_detail = StudyGroupSerializer(source="group", read_only=True)
+    group_detail = StudyGroupSimpleSerializer(source="group", read_only=True)
     group        = serializers.PrimaryKeyRelatedField(
         queryset=StudyGroup.objects.all(), write_only=True
     )
@@ -82,7 +137,7 @@ class SessionSerializer(ModelSerializer):
 
 class AttendanceSerializer(ModelSerializer):
     group_detail   = StudyGroupSerializer(source="group", read_only=True)
-    user_detail    = UserSerializer(source="user", read_only=True)
+    user_detail    = SimpleUserSerializer(source="user", read_only=True)
     session_detail = SessionSerializer(source="session", read_only=True)
 
     group   = serializers.PrimaryKeyRelatedField(queryset=StudyGroup.objects.all(), write_only=True)

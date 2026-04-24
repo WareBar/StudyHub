@@ -12,7 +12,7 @@ class StudyGroup(BaseModel):
         null=False,
         blank=False,
         on_delete=models.DO_NOTHING,
-        related_name="subject"
+        related_name="groups"
     )
     max_members = models.IntegerField(null=False, blank=False, default=6)
     creator = models.ForeignKey(
@@ -20,12 +20,12 @@ class StudyGroup(BaseModel):
         null=False,
         blank=False,
         on_delete=models.DO_NOTHING,
-        related_name="creator"
+        related_name="created_groups"
     )
     def __str__(self):
         return self.name
     
-class Subject(BaseModel):
+class Subject(BaseModel):   
     name = models.CharField(max_length=50, unique=True, blank=False, null=False)
     def __str__(self):
         return self.name
@@ -33,8 +33,9 @@ class Subject(BaseModel):
 class MemberShip(BaseModel):
     class MemberShipStatus(models.TextChoices):
         ACCEPTED = "accepted"
-        REJECTED = "rejected",
+        REJECTED = "rejected"
         PENDING = "pending"
+        CANCELLED = "cancelled"
 
     class Role(models.TextChoices):
         CREATOR = "creator"
@@ -46,14 +47,14 @@ class MemberShip(BaseModel):
         null=False,
         blank=False,
         on_delete=models.CASCADE,
-        related_name="membership"
+        related_name="memberships"
     )
     user = models.ForeignKey(
         User,
         null=False,
         blank=False,
         on_delete=models.CASCADE,
-        related_name="members"
+        related_name="memberships"
     )
     status = models.CharField(
         max_length=10,
@@ -77,6 +78,13 @@ class MemberShip(BaseModel):
         return f"{self.user.username}'s {self.group.name} membership"
 
 class Session(BaseModel):
+    # add status here if,session is finished, or schedlued or on-going
+    # to track the session status easily and not relying on the start and end attr
+    class SessionStatus(models.TextChoices):
+        FINISHED = "finished"
+        SCHEDULED = "scheduled"
+        ON_GOING =  "on_going"
+        CANCELLED = "cancelled"
     class SessionTypes(models.TextChoices):
         ONLINE = "online"
         PHYSICAL = "physical"
@@ -91,6 +99,11 @@ class Session(BaseModel):
         max_length=10,
         choices=SessionTypes.choices,
         default=SessionTypes.ONLINE
+    )
+    status = models.CharField(
+        max_length=20, 
+        choices=SessionStatus.choices,
+        default=SessionStatus.SCHEDULED
     )
     start = models.DateTimeField()
     end = models.DateTimeField()
@@ -115,12 +128,14 @@ class Attendance(BaseModel):
         null=False,
         blank=False,
         on_delete=models.CASCADE,
+        related_name="attendances"
     )
     user = models.ForeignKey(
         User,
         null=False,
         blank=False,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name="attendances"
     )
     session = models.ForeignKey(
         Session,
@@ -129,6 +144,14 @@ class Attendance(BaseModel):
         on_delete=models.DO_NOTHING,
         related_name="attendances"
     )
+    status = models.CharField(
+        max_length=20,
+        choices=AttendanceStatus.choices,
+        default=AttendanceStatus.ABSENT
+    )
+    # to determine if the user left or in the attendance before sending a heartbeat
+    is_active = models.BooleanField(default=True)
+
     # to calculate the users study time in the session
     check_in_time = models.DateTimeField(default=timezone.now)
     check_out_time = models.DateTimeField(null=True, blank=True)

@@ -12,3 +12,6 @@ venv/
 build/
 dist/
 *.egg-info/
+
+**/migrations/*
+!**/migrations/__init__.py

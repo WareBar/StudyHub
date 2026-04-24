@@ -13,143 +13,31 @@ import {
   Calendar,
   Clock,
   Lock,
-  Globe,
   MessageCircle,
-  Settings,
+  XCircle,
   UserPlus,
   ArrowLeft,
   Send,
-  Crown,
-  Shield,
   CheckCircle,
 } from "lucide-react";
+import api from "@/utils/api";
+import { useQuery } from "@tanstack/react-query";
+import QueryWrapper from "@/components/query-wrapper";
+import { relativeTime } from "@/utils/time";
+import NoResult from "@/components/no-result";
+import { useStudyGroup } from "@/hooks/useStudyGroup";
+import { useToast } from "@/hooks/useToast";
+import { GroupMembershipsDialog } from "@/components/group-memberships-dialog";
+import { InviteUserDialog } from "@/components/invite-user";
+import { getRoleBadge } from "@/components/get-role-badge";
 
-const groupData = {
-  id: "1",
-  name: "Calculus Study Crew",
-  subject: "Mathematics",
-  description:
-    "Weekly problem-solving sessions for Calculus I and II. We focus on understanding concepts deeply and practice exam questions together. Whether you're struggling with derivatives or acing integrals, there's a place for you here!",
-  memberCount: 6,
-  maxMembers: 8,
-  schedule: "Monday & Wednesday, 6-8 PM",
-  isPrivate: false,
-  matchPercentage: 95,
-  createdAt: "2 months ago",
-  members: [
-    {
-      id: "1",
-      name: "Alex Johnson",
-      role: "owner",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=alex",
-      course: "Mathematics",
-      year: "Junior",
-    },
-    {
-      id: "2",
-      name: "Sarah Chen",
-      role: "admin",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=sarah",
-      course: "Computer Science",
-      year: "Sophomore",
-    },
-    {
-      id: "3",
-      name: "Mike Williams",
-      role: "member",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=mike",
-      course: "Engineering",
-      year: "Junior",
-    },
-    {
-      id: "4",
-      name: "Emma Davis",
-      role: "member",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=emma",
-      course: "Physics",
-      year: "Freshman",
-    },
-    {
-      id: "5",
-      name: "James Brown",
-      role: "member",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=james",
-      course: "Mathematics",
-      year: "Senior",
-    },
-    {
-      id: "6",
-      name: "Lisa Anderson",
-      role: "member",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=lisa",
-      course: "Statistics",
-      year: "Junior",
-    },
-  ],
+
+type PendingMembershipRequestProps = {
+  onCancel: () => void;
+  isCancelling: boolean;
 };
 
-const upcomingSessions: Session[] = [
-  {
-    id: "1",
-    groupName: "Calculus Study Crew",
-    subject: "Mathematics",
-    date: "Today",
-    time: "6:00 PM",
-    duration: "2 hours",
-    location: "Zoom Meeting",
-    isOnline: true,
-    attendees: [
-      {
-        id: "1",
-        name: "Alex",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=alex",
-        attending: true,
-      },
-      {
-        id: "2",
-        name: "Sarah",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=sarah",
-        attending: true,
-      },
-      {
-        id: "3",
-        name: "Mike",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=mike",
-        attending: false,
-      },
-      {
-        id: "4",
-        name: "Emma",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=emma",
-        attending: true,
-      },
-    ],
-  },
-  {
-    id: "2",
-    groupName: "Calculus Study Crew",
-    subject: "Mathematics",
-    date: "Wednesday",
-    time: "6:00 PM",
-    duration: "2 hours",
-    location: "Library Room 105",
-    isOnline: false,
-    attendees: [
-      {
-        id: "1",
-        name: "Alex",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=alex",
-        attending: true,
-      },
-      {
-        id: "5",
-        name: "James",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=james",
-        attending: true,
-      },
-    ],
-  },
-];
+
 
 const chatMessages = [
   {
@@ -182,31 +70,46 @@ const chatMessages = [
   },
 ];
 
+
+
+
 export default function GroupDetailsPage() {
   const { id } = useParams();
   const [message, setMessage] = useState("");
-  const [isJoined, setIsJoined] = useState(false);
+  const { 
+    joinRequest, isRequesting,
+    cancelRequest, isCancellingRequest
+  } = useStudyGroup()
+  const {toast} = useToast()
+  
 
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case "owner":
-        return (
-          <Badge variant="warning" className="gap-1">
-            <Crown className="h-3 w-3" />
-            Owner
-          </Badge>
-        );
-      case "admin":
-        return (
-          <Badge variant="info" className="gap-1">
-            <Shield className="h-3 w-3" />
-            Admin
-          </Badge>
-        );
-      default:
-        return null;
-    }
-  };
+  const fetchStudyGroupDetails = async () => {
+    const response = await api.get(`/study-group/${id}`)
+    console.log(response.data)
+    return response.data
+  }
+
+  const {data, isLoading, error} = useQuery({
+    queryKey:['study-group-details',id],
+    queryFn: fetchStudyGroupDetails,
+    enabled: !!id
+  })
+
+
+  const handleJoinRequest = async () => {
+    if (!id) return toast.error("Join request failed","The group id is missing")
+    joinRequest({
+      groupId:Number(id)
+    })
+  }
+
+  const handleCancelRequest = async () => {
+    if (!id) return toast.error("Cancellation request failed","The group id is missing")
+    cancelRequest({
+      groupId:Number(id)
+    })
+  }
+
 
   return (
     <Layout isAuthenticated>
@@ -221,30 +124,132 @@ export default function GroupDetailsPage() {
           </Button>
 
           {/* Header */}
+          <QueryWrapper
+          data={data}
+          isLoading={isLoading}
+          error={error}
+          >
+            <GroupPageHeader
+            detail={data}
+            />
+          </QueryWrapper>
+
+
+          {data && (() => {
+            switch (data.membership_status) {
+              case "accepted":
+                return (
+                  <Tabs defaultValue="sessions" className="space-y-6">
+                    <TabsList className="bg-muted/50">
+                      <TabsTrigger value="sessions">Sessions</TabsTrigger>
+                      <TabsTrigger value="members">Members</TabsTrigger>
+                      <TabsTrigger value="chat">Chat</TabsTrigger>
+                      <TabsTrigger value="attendance">Attendance</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="sessions">
+                      <SessionsTab />
+                    </TabsContent>
+
+                    <TabsContent value="members" className="space-y-6">
+                      <MembersTab 
+                      members={data?.memberships} 
+                      groupId={id}
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="chat">
+                      <Card variant="elevated" className="h-[500px] flex flex-col">
+                        <CardHeader className="border-b border-border py-4">
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            <MessageCircle className="h-5 w-5 text-primary" />
+                            Group Chat
+                          </CardTitle>
+                        </CardHeader>
+
+                        <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+                          {chatMessages.map(msg => (
+                            <div key={msg.id} className="flex items-start gap-3">
+                              <Avatar size="sm">
+                                <AvatarImage src={msg.avatar} alt={msg.user} />
+                                <AvatarFallback>{msg.user[0]}</AvatarFallback>
+                              </Avatar>
+
+                              <div className="flex-1">
+                                <div className="flex items-baseline gap-2">
+                                  <span className="font-medium text-sm">{msg.user}</span>
+                                  <span className="text-xs text-muted-foreground">{msg.time}</span>
+                                </div>
+                                <p className="text-sm mt-1">{msg.message}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </CardContent>
+
+                        <div className="p-4 border-t border-border">
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Type a message..."
+                              value={message}
+                              onChange={e => setMessage(e.target.value)}
+                              className="flex-1"
+                            />
+                            <Button>
+                              <Send className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    </TabsContent>
+
+                    <TabsContent value="attendance">
+                      <AttendanceHistoryTab
+                        groupId={id}
+                        maxMembers={10}
+                      />
+                    </TabsContent>
+                  </Tabs>
+                )
+
+              case "pending":
+                return (
+                  <PendingMembershipRequest
+                    onCancel={handleCancelRequest}
+                    isCancelling={isCancellingRequest}
+                  />
+                )
+
+              case "none":
+              default:
+                return (
+                  <NotAMemberBanner
+                    onRequest={handleJoinRequest}
+                    isRequesting={isRequesting}
+                  />
+                )
+            }
+          })()}
+        </div>
+      </div>
+    </Layout>
+  );
+}
+
+
+const GroupPageHeader = ({detail}) => {
+  return (
           <div className="flex flex-col lg:flex-row gap-6 mb-8">
             <Card variant="elevated" className="flex-1">
               <CardContent className="p-6">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div>
                     <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <Badge variant="soft">{groupData.subject}</Badge>
-                      {groupData.isPrivate ? (
-                        <Badge variant="outline" className="gap-1">
-                          <Lock className="h-3 w-3" />
-                          Private
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="gap-1">
-                          <Globe className="h-3 w-3" />
-                          Public
-                        </Badge>
-                      )}
-                      <Badge variant="success">{groupData.matchPercentage}% match</Badge>
+                      <Badge variant="soft">{detail.subject_detail.name}</Badge>
                     </div>
-                    <h1 className="text-2xl sm:text-3xl font-bold mb-2">{groupData.name}</h1>
-                    <p className="text-muted-foreground max-w-2xl">{groupData.description}</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold mb-2">{detail.name}</h1>
+                    <p className="text-muted-foreground max-w-2xl">{detail.description}</p>
                   </div>
-                  <div className="flex gap-2 shrink-0">
+                  {/* <div className="flex gap-2 shrink-0">
                     {isJoined ? (
                       <>
                         <Button variant="outline">
@@ -261,7 +266,7 @@ export default function GroupDetailsPage() {
                         Join Group
                       </Button>
                     )}
-                  </div>
+                  </div> */}
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-border">
@@ -269,7 +274,8 @@ export default function GroupDetailsPage() {
                     <Users className="h-5 w-5 text-primary" />
                     <div>
                       <div className="font-semibold">
-                        {groupData.memberCount}/{groupData.maxMembers}
+                        {/* {groupData.memberCount}/{groupData.maxMembers} */}
+                        {detail.memberships.length}/{detail.max_members}
                       </div>
                       <div className="text-xs text-muted-foreground">Members</div>
                     </div>
@@ -277,21 +283,21 @@ export default function GroupDetailsPage() {
                   <div className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-primary" />
                     <div>
-                      <div className="font-semibold">{groupData.schedule}</div>
+                      <div className="font-semibold">Tuesday</div>
                       <div className="text-xs text-muted-foreground">Schedule</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="h-5 w-5 text-primary" />
                     <div>
-                      <div className="font-semibold">{groupData.createdAt}</div>
+                      <div className="font-semibold">{relativeTime(detail.created_at)}</div>
                       <div className="text-xs text-muted-foreground">Created</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-5 w-5 text-success" />
                     <div>
-                      <div className="font-semibold">24</div>
+                      <div className="font-semibold">{detail.total_sessions}</div>
                       <div className="text-xs text-muted-foreground">Sessions</div>
                     </div>
                   </div>
@@ -299,149 +305,227 @@ export default function GroupDetailsPage() {
               </CardContent>
             </Card>
           </div>
+  )
 
-          {/* Tabs */}
-          <Tabs defaultValue="sessions" className="space-y-6">
-            <TabsList className="bg-muted/50">
-              <TabsTrigger value="sessions">Sessions</TabsTrigger>
-              <TabsTrigger value="members">Members</TabsTrigger>
-              <TabsTrigger value="chat">Chat</TabsTrigger>
-              <TabsTrigger value="attendance">Attendance</TabsTrigger>
-            </TabsList>
+}
 
-            {/* Sessions Tab */}
-            <TabsContent value="sessions" className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Upcoming Sessions</h2>
-                <Button>
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Schedule Session
-                </Button>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                {upcomingSessions.map(session => (
-                  <SessionCard key={session.id} session={session} />
-                ))}
-              </div>
-            </TabsContent>
+const SessionsTab = () =>{
 
-            {/* Members Tab */}
-            <TabsContent value="members" className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Members ({groupData.members.length})</h2>
-                <Button variant="outline">
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Invite
-                </Button>
-              </div>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {groupData.members.map(member => (
-                  <Card key={member.id} variant="default">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <Avatar size="lg">
-                          <AvatarImage src={member.avatar} alt={member.name} />
-                          <AvatarFallback>{member.name[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold truncate">{member.name}</span>
-                            {getRoleBadge(member.role)}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {member.course} • {member.year}
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">All Sessions of the group</h2>
+        <Button>
+          <Calendar className="h-4 w-4 mr-2" />
+          Schedule Session
+        </Button>
+      </div>
+      {/* <div className="grid sm:grid-cols-2 gap-4">
+        {upcomingSessions.map(session => (
+          <SessionCard key={session.id} session={session} />
+        ))}
+      </div> */}
+      <div className="">
+        <Tabs orientation="vertical" defaultValue="upcoming" className="space-y-6">
+          <TabsList className="w-3xs text-center">
+            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+            <TabsTrigger value="on-going">On Going</TabsTrigger>
+            <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
+            <TabsTrigger value="finished">Finished</TabsTrigger>
+            <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+    </div>
+  )
+}
 
-            {/* Chat Tab */}
-            <TabsContent value="chat">
-              <Card variant="elevated" className="h-[500px] flex flex-col">
-                <CardHeader className="border-b border-border py-4">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <MessageCircle className="h-5 w-5 text-primary" />
-                    Group Chat
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {chatMessages.map(msg => (
-                    <div key={msg.id} className="flex items-start gap-3">
-                      <Avatar size="sm">
-                        <AvatarImage src={msg.avatar} alt={msg.user} />
-                        <AvatarFallback>{msg.user[0]}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-medium text-sm">{msg.user}</span>
-                          <span className="text-xs text-muted-foreground">{msg.time}</span>
-                        </div>
-                        <p className="text-sm mt-1">{msg.message}</p>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-                <div className="p-4 border-t border-border">
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Type a message..."
-                      value={message}
-                      onChange={e => setMessage(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button>
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            </TabsContent>
 
-            {/* Attendance Tab */}
-            <TabsContent value="attendance">
-              <Card variant="elevated">
-                <CardHeader>
-                  <CardTitle>Attendance History</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      { date: "Dec 18", present: 5, total: 6 },
-                      { date: "Dec 16", present: 6, total: 6 },
-                      { date: "Dec 11", present: 4, total: 6 },
-                      { date: "Dec 9", present: 5, total: 6 },
-                    ].map((session, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between p-4 rounded-lg bg-muted/50"
-                      >
-                        <div>
-                          <div className="font-medium">{session.date}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {session.present}/{session.total} attended
-                          </div>
-                        </div>
-                        <div className="flex -space-x-2">
-                          {groupData.members.slice(0, session.present).map(member => (
-                            <Avatar key={member.id} size="sm" className="border-2 border-card">
-                              <AvatarImage src={member.avatar} />
-                              <AvatarFallback>{member.name[0]}</AvatarFallback>
-                            </Avatar>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+
+
+
+const MembersTab = ({members, groupId}) => {
+  const [showMemberManagementDialog, setShowMemberManagementDialog] = useState<boolean>(false)
+  const [showInviteDialog, setShowInviteDialog] = useState<boolean>(false)
+
+
+  return (
+    <div className="">
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-xl font-semibold">Members {members.length}</h2>
+        <div className="flex gap-3">
+          <Button variant="outline"
+          onClick={()=>setShowInviteDialog(true)}
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Invite
+          </Button>
+
+          <Button 
+          variant="default"
+          onClick={()=>setShowMemberManagementDialog(true)}
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Manage memberships
+          </Button>
         </div>
       </div>
-    </Layout>
-  );
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {members?.map(member => (
+          <Card key={member.id} variant="default">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <Avatar size="lg">
+                  <AvatarImage src={member.user.avatar} alt={member.user.first_name} />
+                  <AvatarFallback>{member.user.first_name}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold truncate">{member.user.username}</span>
+                    {getRoleBadge(member.role)}
+                  </div>
+                  {/* <div className="text-sm text-muted-foreground">
+                    {member.course} • {member.year}
+                  </div> */}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <GroupMembershipsDialog
+      groupId={groupId}
+      open={showMemberManagementDialog}
+      onOpenChange={setShowMemberManagementDialog}
+      />
+
+
+      <InviteUserDialog
+      groupId={groupId}
+      open={showInviteDialog}
+      onOpenChange={setShowInviteDialog}
+      />
+
+    </div>
+  )
 }
+
+const AttendanceHistoryTab = ({groupId, maxMembers}) => {
+
+  const fetchGroupAttendanceHistory = async (groupId:number) => {
+    const response = await api.get(`/study-group/${groupId}/attendance_history`)
+    return response.data
+  }
+
+  const {data, isLoading, error} = useQuery({
+    queryKey:["group-attendance-history", groupId],
+    queryFn: ()=>fetchGroupAttendanceHistory(groupId),
+    enabled:!!groupId
+
+  })
+
+
+  return (
+    <Card variant="elevated">
+      <CardHeader>
+        <CardTitle>Attendance History</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <QueryWrapper
+        data={data}
+        isLoading={isLoading}
+        error={error}
+        noResultsComponent={
+          <NoResult
+            label="Attendance History"
+            description="There are attendances records yet"
+          />
+        }
+        >
+          <div className="space-y-4">
+            {
+              data?.map((attendance, index)=>{
+                return (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 rounded-lg bg-muted/50"
+                    >
+                    <div>
+                      <div className="font-medium">{attendance.date}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {attendance.users?.length}/{maxMembers} attended
+                      </div>
+                    </div>
+                    <div className="flex -space-x-2">
+                      {
+                        attendance.users?.map(member => (
+                        <Avatar key={member.id} size="sm" className="border-2 border-card">
+                          <AvatarImage src={member.avatar} />
+                          <AvatarFallback>{member.first_name}</AvatarFallback>
+                        </Avatar>
+                        ))
+                      }
+                    </div>
+                  </div>
+                )
+              })
+            }
+          </div>
+        </QueryWrapper>
+      </CardContent>
+    </Card>
+    )
+}
+
+
+const NotAMemberBanner = ({onRequest, isRequesting}) => {
+  return (
+  <Card variant="elevated" className="text-center py-12">
+    <CardContent className="space-y-4">
+      <Lock className="h-12 w-12 text-muted-foreground mx-auto" />
+      <h2 className="text-xl font-semibold">Members Only</h2>
+      <p className="text-muted-foreground">
+        Join this group to view sessions, members, and chat.
+      </p>
+      <Button
+      onClick={()=>onRequest()}
+      disabled={isRequesting}
+      >
+        <UserPlus className="h-4 w-4 mr-2" />
+        {isRequesting? "Sending join request": "Join group"}
+      </Button>
+    </CardContent>
+  </Card>
+  )
+};
+
+const PendingMembershipRequest = ({
+  onCancel,
+  isCancelling,
+}: PendingMembershipRequestProps) => {
+  return (
+    <Card variant="elevated" className="text-center py-12">
+      <CardContent className="space-y-4">
+        <Clock className="h-12 w-12 text-yellow-500 mx-auto" />
+
+        <h2 className="text-xl font-semibold">Request Pending</h2>
+
+        <p className="text-muted-foreground">
+          Your request to join this group is currently under review.
+        </p>
+
+        <div className="flex justify-center">
+          <Button
+            variant="destructive"
+            onClick={onCancel}
+            disabled={isCancelling}
+          >
+            <XCircle className="h-4 w-4 mr-2" />
+            {isCancelling ? "Cancelling..." : "Cancel Request"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};

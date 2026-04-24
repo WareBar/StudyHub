@@ -1,6 +1,7 @@
 from rest_framework.response import Response
 from User.models import User
-from User.serializers import UserSerializer
+from User.serializers import UserSerializer, ProfileSerializer
+from User.simple_serializers import SimpleUserSerializer
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 # Create your views here.
@@ -10,21 +11,22 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
-from django.utils import timezone
-from datetime import timedelta
+from core.validators import require_params
+from .services import UserService
+from rest_framework.exceptions import NotAcceptable
+from core.mixins import SearchMixin
+from core.pagination import CustomPagination
 
-
-# external
-from study.models import (
-    StudyGroup,
-    MemberShip,
-    Session,
-    Attendance
-)
-
-class UserViewset(ModelViewSet):
+class UserViewset(SearchMixin,ModelViewSet):
     queryset = User.objects.all()
-    serializer_class = UserSerializer
+    search_fields = ["username", "email", "first_name","last_name"]
+    pagination_class = CustomPagination
+
+
+    def get_serializer_class(self):
+        if self.request.user.is_staff or self.request.user.is_superuser:
+            return UserSerializer        # full serializer
+        return SimpleUserSerializer      # limited fields
 
     def get_permissions(self):
         if self.action in ['create']: #regiser new user
@@ -32,16 +34,22 @@ class UserViewset(ModelViewSet):
         elif self.action in ['retrieve','update','partial_update','destroy']:
             permission_classes = [IsAuthenticated]
         elif self.action in ['list']:
-            permission_classes = [IsAdminUser]
+            permission_classes = [IsAuthenticated]
         else:
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
     
     def get_queryset(self):
-        # Non-admins can only see their own profile
         user = self.request.user
         if user.is_staff:
             return User.objects.all()
+        if self.action in ['retrieve', 'profile']:
+            return User.objects.all()
+        if self.action == 'list':
+            # search = self.request.query_params.get('search', '')
+            # if not search:
+            #     return User.objects.none()  # no search term = no results
+            return User.objects.all()       # SearchMixin filters from here
         return User.objects.filter(id=user.id)
     
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
@@ -53,88 +61,25 @@ class UserViewset(ModelViewSet):
     # to get the user kpi
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def stats(self, request):
-        # get the logged in user
-        user = request.user
-
-        # kpis
-        """
-        Total study group joined
-        Total session this week
-        Total Active Time on the Site or studyhours
-        Attendance Rate across all study groop
-        """
-        # getting user total studygroup where he belong
-        memberships = MemberShip.objects.filter(user=user)
-        total_groups = memberships.count()
+        user_id = request.query_params.get("user_id")
+        if not user_id:
+            raise NotAcceptable({
+                "detail": "User id is required",
+                "code": "MISSING_USER_ID"
+            })
+        user_id = int(user_id)
+        result = UserService.get_stats(user_id=user_id)
+        return Response(result)
 
 
-        # getting number of session this week
-        today = timezone.now()
-        # this week — Monday to Sunday
-        this_week_start = today - timedelta(days=today.weekday())
-        this_week_end   = this_week_start + timedelta(days=7)
-        # last week
-        last_week_start = this_week_start - timedelta(days=7)
+    @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated])
+    def profile(self, request, pk=None):
+        user = self.get_object()  # gets the User by pk
+        profile = user.profile    # OneToOne so it's a direct access, not .all()
+        serializer = ProfileSerializer(profile, many=False)
+        return Response(serializer.data)
 
 
-        sessions = Session.objects.filter(
-            group__membership__user=user,
-            group__membership__status=MemberShip.MemberShipStatus.ACCEPTED,
-            start__gte=last_week_start,  # ← double underscore
-            start__lt=this_week_end      # ← double underscore
-        )
-
-        if sessions.count() > 0:
-            # split by week boundary
-            last_week_sessions = sessions.filter(start__lt=this_week_start)
-            this_week_sessions = sessions.filter(start__gte=this_week_start)
-            sessions_difference = this_week_sessions.count() - last_week_sessions.count()
-
-        # getting attendance rate
-        attendace = Attendance.objects.filter(user=user)
-
-        if attendace.count() > 0:
-            absents = attendace.filter(status=Attendance.AttendanceStatus.ABSENT).count()
-            attendance_rate = (
-                (attendace.count() - absents) / attendace.count()
-            ) * 100
-
-        # getting study total hours in seconds
-        total_seconds = 0
-        for a in attendace:
-            if a.session.session_type == a.session.SessionTypes.PHYSICAL:
-                if a.check_in_time and a.check_out_time:
-                    total_seconds += (a.check_out_time - a.check_in_time).total_seconds()
-            else:  # ONLINE
-                total_seconds += a.total_active_seconds or 0
-
-        total_hours = round(total_seconds / 3600, 2)
-
-
-
-        data = [
-            {
-                "title":"Study Groups",
-                "content":total_groups,
-                "sub_content":"haha"
-            },
-            {
-                "title":"Sessions This Week",
-                "content": this_week_sessions if sessions.count() > 0 else 0,
-                "sub_content":f"{sessions_difference if sessions.count() > 0 else 0} last week"
-            },
-            {
-                "title":"Study Hours",
-                "content":total_hours,
-                "sub_content":"Wow sipag ah"
-            },
-            {
-                "title":"Attendance Rate",
-                "content":f"{attendance_rate if attendace.count() > 0 else 0}%",
-                "sub_content": "great"
-            },
-        ]
-        return Response(data)
     # to hash the user password when registering
     def perform_create(self, serializer):
         user = serializer.save()

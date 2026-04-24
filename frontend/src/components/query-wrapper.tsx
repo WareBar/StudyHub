@@ -18,7 +18,7 @@ import { LoadingOne } from "./loading";
 
 interface QueryWrapperProps<T> {
   isLoading: boolean;
-  error: Error | null | any;
+  error: Error | null;
   data: T | undefined;
   children: ReactNode;
   loader?: ReactNode;
@@ -32,21 +32,20 @@ const QueryWrapper = <T,>({
   children,
   noResultsComponent
 }: QueryWrapperProps<T>) => {
-
   if (isLoading) return <LoadingOne/>;
-
+  
   if (error) {
     return (
       <div className="p-4 border border-red-200 bg-red-50 text-red-700 rounded-md">
         <p className="font-bold">Something went wrong</p>
-        <p className="text-sm">{error.message || "Unknown Error"}</p>
+        <p className="text-sm">{error.message || error.detail || "Unknown Error"}</p>
       </div>
     );
   }
 
   if (!data) return <p>No data found</p>;
 
-  if (data?.data?.results?.length === 0 || data?.results?.length === 0) {
+  if (data?.data?.results?.length === 0 || data?.results?.length === 0 || data?.length === 0) {
     return <>{noResultsComponent ?? "No Record yet"}</>
   }
 
