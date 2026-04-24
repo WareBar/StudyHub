@@ -173,8 +173,8 @@ export const AuthProvider = ({children}:AuthProviderProps) => {
         const response = await axios.post(`${API_URL}/auth/google/`, {
         token: googleToken,
         });
+        console.log(response)
         const { access, refresh, user } = response.data;
-
         // Store tokens & user in localStorage
         setTokens(access, refresh);
         setUser(user);
