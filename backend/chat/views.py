@@ -10,5 +10,5 @@ class ChatViewset(ModelViewSet):
     serializer_class = ChatSerializer
     pagination_class = CustomPagination
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['group', 'sender',"content_type"]
+    filterset_fields = ['group', 'sender']
     
