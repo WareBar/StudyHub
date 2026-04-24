@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from rest_framework.exceptions import ValidationError, NotFound, PermissionDenied
 from django.db import transaction
-
+from django.db import IntegrityError
 
 class BaseService:
     @staticmethod
@@ -105,16 +105,25 @@ class StudyGroupService(BaseService):
                     "code": "ALREADY_PENDING"
                 })
 
-        MemberShip.objects.create(
-            group=group,
-            user=invited_user,
-            status=MemberShip.MemberShipStatus.PENDING
-        )
+        # i am keeping a strict one group, one membership per one user
+        try:
+            MemberShip.objects.create(
+                group=group,
+                user=invited_user,
+                status=MemberShip.MemberShipStatus.PENDING
+            )
+        except IntegrityError:
+            raise ValidationError({
+                "detail": f"{invited_user.username} has already an existing membership request",
+                "code": "ALREADY_MEMBERSHIP_REQUEST"
+            })
 
         return {
             "message": f"{invited_user.username} invited to {group.name}",
             "status": "pending"
         }
+
+
 
     @staticmethod
     def membership_request(request_type: str, group_id: int, user_id: int):

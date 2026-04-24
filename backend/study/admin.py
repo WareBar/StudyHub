@@ -4,10 +4,11 @@ from study.models import (
     StudyGroup,
     MemberShip,
     Attendance,
-    Session
+    Session, Subject
 )
 
 admin.site.register(StudyGroup)
 admin.site.register(MemberShip)
 admin.site.register(Attendance)
 admin.site.register(Session)
+admin.site.register(Subject)

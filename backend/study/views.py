@@ -93,7 +93,6 @@ class StudyGroupViewset(GroupRBACMixin, UserRelatedMixin,SearchMixin, ModelViewS
         return Response(result)
 
     
-
     # invite
     @action(detail=False, methods=["post"],permission_classes=[IsAuthenticated])
     def invite(self, request):

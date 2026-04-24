@@ -12,7 +12,7 @@ from study.models import (
     Session,
     Attendance
 )
-from User.serializers import UserSerializer, SimpleUserSerializer
+from User.simple_serializers import SimpleUserSerializer
 from User.models import User
 from django.utils import timezone
 
