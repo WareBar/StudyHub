@@ -16,12 +16,16 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from drf_spectacular.views import SpectacularAPIView
+
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("", include("User.urls")),
     path("", include("study.urls")),
     path("", include("chat.urls")),
-    path("", include("notification.urls"))
+    path("", include("notification.urls")),
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     
 ]
