@@ -55,11 +55,8 @@ api.interceptors.response.use(
       // Network or server is down
       return Promise.reject(new Error("Network error: Unable to reach server"));
     } else {
-      // Server responded with a status code
-      const status = error.response.status;
-      const statusText = error.response.statusText;
-      const message = error.response.data?.message;
-      return Promise.reject(new Error(message || `Server error: ${status} - ${statusText}`));
+      // Server responded with a status code  
+      return Promise.reject(error.response.data);
     }
   }
 );
