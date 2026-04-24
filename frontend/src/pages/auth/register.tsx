@@ -12,10 +12,11 @@ import { useAuth } from "@/context/AuthContext";
 import { Loader2Icon } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/useToast";
 import { GoogleLogin } from "@react-oauth/google";
 
 export default function SignupPage() {
+  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -49,20 +50,20 @@ export default function SignupPage() {
     setIsSigningUp(true);
 
     if (!email || !firstName || !lastName || !password || !confirmPassword) {
-      toast.error("Please fill in all required fields");
+      toast.error("Registration failed","Please fill in all required fields");
       setIsSigningUp(false);
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error("Password doesn't match");
+      toast.error("Registration failed","Password doesn't match");
       setIsSigningUp(false);
       return;
     }
 
     const passwordErrors = validatePassword(password);
     if (passwordErrors.length > 0) {
-      toast.error(passwordErrors[0]);
+      toast.error("Password invalid",passwordErrors[0]);
       setIsSigningUp(false);
       return;
     }
@@ -77,7 +78,7 @@ export default function SignupPage() {
       });
 
       if (result.success) {
-        toast.success("Registration successful! Redirecting to home...");
+        toast.success("Registration successful!"," Redirecting to home...");
         navigate("/login");
       } else {
         if (result.error && result.error.detail) {
@@ -87,12 +88,12 @@ export default function SignupPage() {
         } else if (result.error && result.error.email) {
           toast.error(result.error.email[0]);
         } else {
-          toast.error("Registration failed. Please try again.");
+          toast.error("Registration failed","Please try again.");
         }
       }
     } catch (error) {
       console.error("Registration error:", error);
-      toast.error("An unexpected error occurred during registration.");
+      toast.error("Unexpected error","An unexpected error occurred during registration.");
     } finally {
       setIsSigningUp(false);
     }
@@ -104,7 +105,7 @@ export default function SignupPage() {
     const result = await loginWithGoogle(token);
 
     if (result.success) {
-      toast.success(`Welcome ${result.user?.username || "back"}!`);
+      toast.success(`Welcome ${result.user?.username || "back"}!`, "Let's continue to grind");
       navigate("/");
     } else {
       toast.error(result.error?.detail || "Google login failed.");
@@ -112,7 +113,7 @@ export default function SignupPage() {
   };
 
   const handleGoogleError = () => {
-    toast.error("Google login was cancelled or failed.");
+    toast.error("Google error","Google login was cancelled or failed.");
   };
 
   return (

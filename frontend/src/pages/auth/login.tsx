@@ -11,11 +11,13 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { Loader2Icon } from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
+import { useToast } from "@/hooks/useToast";
+
 
 export default function LoginPage() {
+  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLogging, setIsLogging] = useState(false);
@@ -28,7 +30,7 @@ export default function LoginPage() {
 
     const result = await login(email, password);
     if (result.success) {
-      toast.success("Login successful!");
+      toast.success("Login successful!", "Let's be productive today and study");
       navigate("/dashboard");
     } else {
       if (result.error.detail) {
@@ -36,7 +38,7 @@ export default function LoginPage() {
       } else if (result.error.non_field_errors) {
         toast.error(result.error.non_field_errors[0]);
       } else {
-        toast.error("Login failed. Please check your credentials.");
+        toast.error("Login failed","Please check your credentials");
       }
       setIsLogging(false);
     }
@@ -50,15 +52,15 @@ export default function LoginPage() {
     const result = await loginWithGoogle(token);
 
     if (result.success) {
-      toast.success(`Welcome ${result.user?.username || "back"}!`);
+      toast.success(`Welcome ${result.user?.username || "back"}!`, "Let's continue to be awesome");
       navigate("/");
     } else {
-      toast.error(result.error?.detail || "Google login failed.");
+      toast.error(result.error?.detail || "Google login failed","Please try again!");
     }
   };
 
   const handleGoogleError = () => {
-    toast.error("Google login was cancelled or failed.");
+    toast.error("Google login was cancelled or failed","Please try again!");
   };
 
   return (
