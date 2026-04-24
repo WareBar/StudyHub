@@ -10,7 +10,8 @@ import SchedulePage from "@/pages/SchedulePage";
 import ProfilePage from "@/pages/profile";
 import GroupDetailsPage from "@/pages/GroupsPage/GroupDetailsPage";
 import ClassroomPage from "@/pages/hub/classroom-page";
-
+import MyGroupsPage from "@/pages/GroupsPage/MyGroups";
+import { NotFound } from "@/pages/errors/not-found";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -28,11 +29,14 @@ export const router = createBrowserRouter(
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/groups" element={<GroupsFinderPage />} />
+        <Route path="/my-groups" element={<MyGroupsPage/>}/>
         <Route path="/groups/:id" element={<GroupDetailsPage />} />
         <Route path="/schedule" element={<SchedulePage />} />
         <Route path="/profile" element={<ProfilePage />} />
         {/* <Route path="/classroom" element={<ClassroomPage/>}/> */}
       </Route>
+
+      <Route path="*" element={<NotFound/>}/>
     </>,
   ),
 );
