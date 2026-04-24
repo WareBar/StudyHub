@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, Calendar, Bell, Menu, X, LayoutDashboard } from "lucide-react";
+import { Users, Calendar, Bell, Menu, X, LayoutDashboard, User, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
-import icon from "@/assets/icon2.png";
+import icon from "@/assets/icon3.png";
 import { useAuth } from "@/context/AuthContext";
+import { Dropdown, DropdownItem } from '@/components/dropdown'
+import { useToast } from "@/hooks/useToast";
 
 interface NavbarProps {
   isAuthenticated?: boolean;
@@ -14,8 +15,9 @@ interface NavbarProps {
 export function Navbar({ isAuthenticated = false }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
-  // get the user
-  const {user} = useAuth();
+  const { user, logout } = useAuth();
+  const { toast } = useToast()
+
 
   const navLinks = isAuthenticated
     ? [
@@ -35,8 +37,8 @@ export function Navbar({ isAuthenticated = false }: NavbarProps) {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="flex h-30 w-20 items-center justify-center rounded-xl ">
-              <img src={icon} alt="StudyHub" className="w-20 h-20" />
+            <div className="flex h-30 w-20 items-center justify-center rounded-xl">
+              <img src={icon} alt="StudyHub" className="w-15 h-15" />
             </div>
             <span className="text-lg font-bold text-foreground hidden sm:block">StudyHub</span>
           </Link>
@@ -62,7 +64,7 @@ export function Navbar({ isAuthenticated = false }: NavbarProps) {
 
           {/* Right Section */}
           <div className="flex items-center gap-3">
-            {isAuthenticated ? (
+            {user ? (
               <>
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="h-5 w-5" />
@@ -70,28 +72,47 @@ export function Navbar({ isAuthenticated = false }: NavbarProps) {
                     3
                   </span>
                 </Button>
-                <Link to="/profile">
-                  <Avatar
-                    size="sm"
-                    className="cursor-pointer hover:ring-primary transition-all"
+                <Dropdown
+                  trigger={
+                    user.avatar ? (
+                      <img
+                        src={user.avatar}
+                        className="w-9 h-9 rounded-full object-cover cursor-pointer"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold cursor-pointer">
+                        {user.first_name[0]}{user.last_name[0]}
+                      </div>
+                    )
+                  }
+                >
+                  <div className="px-4 py-3 border-b border-border/40">
+                    <p className="text-sm font-semibold">{user.first_name} {user.last_name}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+                  <DropdownItem asChild>
+                    <Link to="/profile">
+                      <User className="w-4 h-4 mr-2" /> Profile
+                    </Link>
+                  </DropdownItem>
+                  <DropdownItem
+                  onClick={()=>{
+                    logout()
+                    toast.info("Logged out","Rest more and grind later")
+                  }}
                   >
-                    {
-                      user && <>
-                      <AvatarImage src={user.avatar} />
-                      </>
-                    }
-                    <AvatarFallback>JS</AvatarFallback>
-                  </Avatar>
-                </Link>
+                    <LogOut className="w-4 h-4 mr-2" /> Logout
+                  </DropdownItem>
+                </Dropdown>
               </>
             ) : (
-              <div className="hidden sm:flex sm:items-center sm:gap-2">
-                <Button variant="ghost" asChild className="hover:bg-orange-100">
-                  <Link to="/login">Log in</Link>
-                </Button>
-                <Button asChild className="bg-orange-500 hover:bg-orange-600 text-white">
-                  <Link to="/signup">Sign up free</Link>
-                </Button>
+              <div className="hidden md:flex items-center gap-2">
+                <Link to="/login">
+                  <Button variant="ghost">Log in</Button>
+                </Link>
+                <Link to="/register">
+                  <Button className="btn-gradient rounded-xl border-0">Sign up</Button>
+                </Link>
               </div>
             )}
 
@@ -128,12 +149,12 @@ export function Navbar({ isAuthenticated = false }: NavbarProps) {
                 {link.label}
               </Link>
             ))}
-            {!isAuthenticated && (
+            {!user && (
               <div className="flex flex-col gap-2 pt-4 border-t border-border/50">
                 <Button variant="outline" asChild className="w-full">
                   <Link to="/login">Log in</Link>
                 </Button>
-                <Button asChild className="w-full">
+                <Button asChild className="w-full btn-gradient border-0">
                   <Link to="/register">Sign up free</Link>
                 </Button>
               </div>
