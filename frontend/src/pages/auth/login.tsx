@@ -148,7 +148,7 @@ export default function LoginPage() {
               {/* Right-side image */}
               <div className="bg-muted relative hidden md:block">
                 <img
-                  src="https://i.pinimg.com/originals/b2/2a/a2/b22aa22b2f3f55b6468361158d52e2e7.gif"
+                  src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgI5Xls3sx7IiwyFfadaeLLWrbFiMAJsBuTi_XrtkR5XcTdY2qXNrQNpgXSbHa6DAB2V4EYGHwWuBQHgZXn4xkCd2sGuzedLXeZwHmNsgxcmb1WfjD5wP4Da3En1oyn3yQQSToviEFNkI87bbC0G4F9BZucslZu5QNFAXXyAM3PyPuNewYYxSUDVuwdOxeN/s16000-rw/Mercenary%20Garage%20Blog%20Custom%20Motorcycle%20Design%20Kirokaze%20Tired%20Now%208%20Bit%20Anime%20Cyberpunk%20GIF.webp"
                   alt="Image"
                   className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
                 />
