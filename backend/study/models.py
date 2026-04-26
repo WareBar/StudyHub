@@ -107,7 +107,7 @@ class Session(BaseModel):
     )
     start = models.DateTimeField()
     end = models.DateTimeField()
-    location = models.CharField(
+    location = models.CharField( 
         max_length=200,
         null=True,
         blank=True, #optional fields since we have online and face to face session types

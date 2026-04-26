@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -30,12 +30,48 @@ import { useToast } from "@/hooks/useToast";
 import { GroupMembershipsDialog } from "@/components/group-memberships-dialog";
 import { InviteUserDialog } from "@/components/invite-user";
 import { getRoleBadge } from "@/components/get-role-badge";
+import { CreateSessionDialog } from "@/components/create-session-dialog";
+import { useAuth } from "@/context/AuthContext";
+import type { StudyGroupProps, MembershipProps, UserProps } from "@/types/models";
+
+
+
+interface GroupPageHeaderProps {
+  detail: StudyGroupProps
+
+}
+
+interface SessionsTabProps {
+  groupId: string | undefined,
+  userRole: string
+}
+
+interface MembersTabProps {
+  members: MembershipProps[]
+  groupId: string | undefined,
+}
+
+interface AttendanceHistoryProps {
+  groupId: string | undefined,
+  maxMembers: number
+}
+
+interface NotAMemberBannerProps {
+  onRequest: ()=>void,
+  isRequesting: boolean
+}
 
 
 type PendingMembershipRequestProps = {
   onCancel: () => void;
   isCancelling: boolean;
 };
+
+type AttendanceProps = {
+  date:string,
+  users: UserProps[]
+  
+}
 
 
 
@@ -81,7 +117,10 @@ export default function GroupDetailsPage() {
     cancelRequest, isCancellingRequest
   } = useStudyGroup()
   const {toast} = useToast()
-  
+  const [userRoleInGroup, setUserRoleInGroup] = useState<string>("")
+  const {user} = useAuth()
+
+
 
   const fetchStudyGroupDetails = async () => {
     const response = await api.get(`/study-group/${id}`)
@@ -109,6 +148,20 @@ export default function GroupDetailsPage() {
       groupId:Number(id)
     })
   }
+
+
+
+  // determine the logged in user;s role in the group
+  useEffect(()=>{
+    if (!data || !user) return
+
+    if (data?.membership_status !== 'accepted') return
+
+    const userMembership = data?.memberships?.find((m:MembershipProps) => m.user.id === user?.id)
+    console.log(userMembership.role)
+    setUserRoleInGroup(userMembership.role)
+
+  },[data, user])
 
 
   return (
@@ -141,14 +194,18 @@ export default function GroupDetailsPage() {
                 return (
                   <Tabs defaultValue="sessions" className="space-y-6">
                     <TabsList className="bg-muted/50">
-                      <TabsTrigger value="sessions">Sessions</TabsTrigger>
-                      <TabsTrigger value="members">Members</TabsTrigger>
-                      <TabsTrigger value="chat">Chat</TabsTrigger>
-                      <TabsTrigger value="attendance">Attendance</TabsTrigger>
+                      {
+                        ['sessions','members','chat','attendance','resources'].map((trigger)=>{
+                          return (
+                            <TabsTrigger value={trigger}>{trigger}</TabsTrigger>
+                          )
+                        })
+                      }
                     </TabsList>
+                    
 
                     <TabsContent value="sessions">
-                      <SessionsTab />
+                      <SessionsTab groupId={id} userRole={userRoleInGroup}/>
                     </TabsContent>
 
                     <TabsContent value="members" className="space-y-6">
@@ -219,6 +276,11 @@ export default function GroupDetailsPage() {
                   />
                 )
 
+              case "cancelled":
+                return (
+                  <CancelledMembership/>
+                )
+
               case "none":
               default:
                 return (
@@ -236,7 +298,7 @@ export default function GroupDetailsPage() {
 }
 
 
-const GroupPageHeader = ({detail}) => {
+const GroupPageHeader = ({detail}:GroupPageHeaderProps) => {
   return (
           <div className="flex flex-col lg:flex-row gap-6 mb-8">
             <Card variant="elevated" className="flex-1">
@@ -249,24 +311,6 @@ const GroupPageHeader = ({detail}) => {
                     <h1 className="text-2xl sm:text-3xl font-bold mb-2">{detail.name}</h1>
                     <p className="text-muted-foreground max-w-2xl">{detail.description}</p>
                   </div>
-                  {/* <div className="flex gap-2 shrink-0">
-                    {isJoined ? (
-                      <>
-                        <Button variant="outline">
-                          <Settings className="h-4 w-4 mr-2" />
-                          Settings
-                        </Button>
-                        <Button variant="destructive" onClick={() => setIsJoined(false)}>
-                          Leave Group
-                        </Button>
-                      </>
-                    ) : (
-                      <Button onClick={() => setIsJoined(true)}>
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Join Group
-                      </Button>
-                    )}
-                  </div> */}
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-border">
@@ -309,42 +353,115 @@ const GroupPageHeader = ({detail}) => {
 
 }
 
-const SessionsTab = () =>{
+
+
+const SessionsTab = ({groupId, userRole}:SessionsTabProps) =>{
+  const [showScheduleSession, setShowScheduleSession] = useState<boolean>(false)
+  const [selectedStatus, setSelectedStatus] = useState<string>("scheduled")
+
+
+
+  const fetchStudyGroupSessions = async () => {
+    const baseUrl = `/study-group/${groupId}/sessions_list`
+    const params = new URLSearchParams()
+    if (selectedStatus){
+      params.set("status",selectedStatus)
+    }
+    const separator = baseUrl.includes("?") ? "&" : "?";
+    const response = await api.get(`${baseUrl}${separator}${params.toString()}`);
+    console.log(response.data)
+    return response.data
+  }
+
+  const {data, isLoading, error} = useQuery({
+    queryKey:['sessions',selectedStatus],
+    queryFn: fetchStudyGroupSessions,
+    enabled: !!groupId
+  })
+
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">All Sessions of the group</h2>
-        <Button>
-          <Calendar className="h-4 w-4 mr-2" />
-          Schedule Session
-        </Button>
+        {
+          userRole !== "member" && (
+            <Button
+            onClick={()=>setShowScheduleSession(true)}
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Schedule Session
+            </Button>
+          )
+        }
       </div>
-      {/* <div className="grid sm:grid-cols-2 gap-4">
-        {upcomingSessions.map(session => (
-          <SessionCard key={session.id} session={session} />
-        ))}
-      </div> */}
       <div className="">
-        <Tabs orientation="vertical" defaultValue="upcoming" className="space-y-6">
+        <Tabs orientation="vertical" defaultValue="scheduled" className="space-y-6">
           <TabsList className="w-3xs text-center">
-            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-            <TabsTrigger value="on-going">On Going</TabsTrigger>
-            <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
-            <TabsTrigger value="finished">Finished</TabsTrigger>
-            <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
+            {/* upcoming == scheduled */}
+            {
+              ["scheduled","on-going", "finished","cancelled"].map((status, index)=>{
+                return (
+                  <TabsTrigger
+                  key={index}
+                  value={status}
+                  onClick={()=>{setSelectedStatus(status)}}
+                  >{status}</TabsTrigger>
+                )
+              })
+            }
           </TabsList>
+
+            {
+              ["scheduled","on-going", "finished","cancelled"].map((status, index)=>{
+                return (
+                  <TabsContent
+                  key={index}
+                  value={status}>
+                    <QueryWrapper
+                    data={data}
+                    isLoading={isLoading}
+                    error={error}
+                    noResultsComponent={
+                      <NoResult
+                        label={`${status} sessions`}
+                        description={`There are no recorded ${status} sessions`}
+                      />
+                    }
+                    >
+                      {
+                        data?.map((session:Session)=>{
+                          return (
+                            <SessionCard
+                              key={session.id}
+                              session={session}
+                              showActions={userRole !== 'member'}
+                            />
+                          )
+                        })
+                      }
+                    </QueryWrapper>
+                  </TabsContent>
+                )
+              })
+            }
+
         </Tabs>
       </div>
+    
+          <CreateSessionDialog
+          groupId={Number(groupId)}
+          open={showScheduleSession}
+          onOpenChange={setShowScheduleSession}
+          />
+
     </div>
   )
 }
 
 
 
-
-
-const MembersTab = ({members, groupId}) => {
+const MembersTab = ({members, groupId}:MembersTabProps) => {
   const [showMemberManagementDialog, setShowMemberManagementDialog] = useState<boolean>(false)
   const [showInviteDialog, setShowInviteDialog] = useState<boolean>(false)
 
@@ -376,7 +493,7 @@ const MembersTab = ({members, groupId}) => {
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
                 <Avatar size="lg">
-                  <AvatarImage src={member.user.avatar} alt={member.user.first_name} />
+                  <AvatarImage src={member.user.avatar || ""} alt={member.user.first_name} />
                   <AvatarFallback>{member.user.first_name}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
@@ -411,7 +528,7 @@ const MembersTab = ({members, groupId}) => {
   )
 }
 
-const AttendanceHistoryTab = ({groupId, maxMembers}) => {
+const AttendanceHistoryTab = ({groupId, maxMembers}:AttendanceHistoryProps) => {
 
   const fetchGroupAttendanceHistory = async (groupId:number) => {
     const response = await api.get(`/study-group/${groupId}/attendance_history`)
@@ -420,7 +537,7 @@ const AttendanceHistoryTab = ({groupId, maxMembers}) => {
 
   const {data, isLoading, error} = useQuery({
     queryKey:["group-attendance-history", groupId],
-    queryFn: ()=>fetchGroupAttendanceHistory(groupId),
+    queryFn: ()=>fetchGroupAttendanceHistory(Number(groupId)),
     enabled:!!groupId
 
   })
@@ -445,7 +562,7 @@ const AttendanceHistoryTab = ({groupId, maxMembers}) => {
         >
           <div className="space-y-4">
             {
-              data?.map((attendance, index)=>{
+              data?.map((attendance:AttendanceProps, index:number)=>{
                 return (
                   <div
                     key={index}
@@ -459,9 +576,9 @@ const AttendanceHistoryTab = ({groupId, maxMembers}) => {
                     </div>
                     <div className="flex -space-x-2">
                       {
-                        attendance.users?.map(member => (
+                        attendance.users?.map((member:UserProps) => (
                         <Avatar key={member.id} size="sm" className="border-2 border-card">
-                          <AvatarImage src={member.avatar} />
+                          <AvatarImage src={member.avatar || ""} />
                           <AvatarFallback>{member.first_name}</AvatarFallback>
                         </Avatar>
                         ))
@@ -479,7 +596,7 @@ const AttendanceHistoryTab = ({groupId, maxMembers}) => {
 }
 
 
-const NotAMemberBanner = ({onRequest, isRequesting}) => {
+const NotAMemberBanner = ({onRequest, isRequesting}:NotAMemberBannerProps) => {
   return (
   <Card variant="elevated" className="text-center py-12">
     <CardContent className="space-y-4">
@@ -525,6 +642,22 @@ const PendingMembershipRequest = ({
             {isCancelling ? "Cancelling..." : "Cancel Request"}
           </Button>
         </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+const CancelledMembership = () => {
+  return (
+    <Card variant="elevated" className="text-center py-12">
+      <CardContent className="space-y-4">
+        <XCircle className="h-12 w-12 text-red-500 mx-auto" />
+
+        <h2 className="text-xl font-semibold">Membership Cancelled</h2>
+
+        <p className="text-muted-foreground">
+          Your membership in this group has been cancelled. You no longer have access to group sessions, chat, or resources.
+        </p>
       </CardContent>
     </Card>
   );

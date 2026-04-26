@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Clock, MapPin, Video, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatTime, formatSessionDate } from "@/utils/time";
+import { useSession } from "@/hooks/useSession";
 
 
 interface GroupDetail {
@@ -29,12 +30,27 @@ interface SessionCardProps {
   session: Session;
   variant?: "upcoming" | "past";
   onJoin?: () => void;
+  showActions:boolean
 }
 
 
-export function SessionCard({ session, variant = "upcoming", onJoin }: SessionCardProps) {
+export function SessionCard({ session, variant = "upcoming", onJoin, showActions }: SessionCardProps) {
   const isPast = variant === "past";
   const isOnline = session.session_type === "online";
+
+
+  const { mutate: updateSession, isMutating } = useSession()
+
+
+  const handleUpdateSession = (newStatus:string) => {
+    if (!newStatus) return;
+
+    updateSession({
+      "id":session.id,
+      "status":newStatus
+    })
+  }
+
 
   return (
     <Card variant={isPast ? "default" : "interactive"} className={cn(isPast && "opacity-75")}>
@@ -46,6 +62,8 @@ export function SessionCard({ session, variant = "upcoming", onJoin }: SessionCa
             </Badge>
             <CardTitle className="text-base">{formatSessionDate(session.start)}</CardTitle>
           </div>
+          <div className="flex items-center gap-2">
+
           {!isPast && (
             <Button size="sm" onClick={onJoin}>
               {isOnline ? (
@@ -58,6 +76,34 @@ export function SessionCard({ session, variant = "upcoming", onJoin }: SessionCa
               )}
             </Button>
           )}
+
+          {
+            showActions &&
+            (() => {
+              switch (session.status) {
+                case "scheduled":
+                  return (
+                    <Button variant="destructive" onClick={() => handleUpdateSession('cancelled')}>
+                      Cancel
+                    </Button>
+                  )
+
+                case "cancelled":
+                  return (
+                    <Button onClick={() => handleUpdateSession("scheduled")}>
+                      Reactivate
+                    </Button>
+                  )
+
+                default:
+                  return null
+              }
+            })()
+
+
+          }
+
+          </div>
         </div>
       </CardHeader>
 

@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import {Crown, Shield} from "lucide-react";
 
 
-export const getRoleBadge = (role: string) => {
+export const getRoleBadge = (role: string | undefined) => {
   switch (role) {
     case "creator":
       return (
