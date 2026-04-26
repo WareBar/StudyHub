@@ -12,19 +12,27 @@ from django.utils.timezone import now
 from rest_framework.exceptions import ValidationError, NotFound, PermissionDenied
 from django.db import transaction
 from django.db import IntegrityError
-
+# for attendance history
+from django.db.models.functions import TruncDate, JSONObject
+from django.contrib.postgres.aggregates import ArrayAgg
+from django.utils.timezone import now
+from datetime import datetime
+from django.utils import timezone
 class BaseService:
     @staticmethod
-    def _get_membership(group, user):
-        membership = MemberShip.objects.filter(group=group, user=user).first()
-        
+    def get_membership_or_none(group, user):
+        return MemberShip.objects.filter(group=group, user=user).first()
+
+    @staticmethod
+    def get_membership_or_error(group, user):
+        membership = BaseService.get_membership_or_none(group, user)
         if membership is None:
             raise ValidationError({
-                "detail": "Membership not found.",
-                "code": "NOT_FOUND"
+                "detail": "You are not a member of this group.",
+                "code": "UNAUTHORIZED"
             })
-        
         return membership
+    
     @staticmethod
     def _get_group_and_user(group_id: int, user_id: int):
         group = get_object_or_404(StudyGroup, id=group_id)
@@ -33,11 +41,6 @@ class BaseService:
 
 
 class StudyGroupService(BaseService):
-    @staticmethod
-    def _get_membership(group, user):
-        # returns None if not found — join/cancel logic depends on this
-        return MemberShip.objects.filter(group=group, user=user).first()
-
     @staticmethod
     @transaction.atomic
     def _handle_join(group, user, membership):
@@ -90,7 +93,7 @@ class StudyGroupService(BaseService):
     @staticmethod
     def invite(group_id: int, invited_user_id: int):
         group, invited_user = StudyGroupService._get_group_and_user(group_id, invited_user_id)
-        membership = StudyGroupService._get_membership(group, invited_user)
+        membership = StudyGroupService.get_membership_or_none(group, invited_user)
 
         if membership:
             if membership.status == MemberShip.MemberShipStatus.ACCEPTED:
@@ -123,8 +126,6 @@ class StudyGroupService(BaseService):
             "status": "pending"
         }
 
-
-
     @staticmethod
     def membership_request(request_type: str, group_id: int, user_id: int):
         request_type = request_type.lower()
@@ -136,7 +137,7 @@ class StudyGroupService(BaseService):
             })
 
         group, user = StudyGroupService._get_group_and_user(group_id, user_id)
-        membership = StudyGroupService._get_membership(group, user)
+        membership = StudyGroupService.get_membership_or_none(group, user)
 
         actions = {
             "join": StudyGroupService._handle_join,
@@ -144,6 +145,45 @@ class StudyGroupService(BaseService):
         }
 
         return actions[request_type](group, user, membership)
+
+
+    # simply return things or prepares or shape data, no saving action
+    @staticmethod
+    def attendance_history(group_id:int, user_id:int) -> dict:
+        group, user = StudyGroupService._get_group_and_user(group_id, user_id)
+        # raises error if not member
+        is_member = StudyGroupService.get_membership_or_error(group, user)
+
+        attendances = Attendance.objects.filter(group=group)
+        result = (
+            attendances
+            .annotate(date=TruncDate("created_at"))
+            .values("date")
+            .annotate(
+                users=ArrayAgg(
+                    JSONObject(
+                        id="user__id",
+                        username="user__username",
+                        avatar="user__avatar",
+                    ),
+                    distinct=True
+                )
+            )
+            .order_by("date")
+        )
+        return result
+
+
+    @staticmethod
+    def sessions_list(group_id:int, user_id:int, status:str) -> dict:
+        group, user = StudyGroupService._get_group_and_user(group_id, user_id)
+        # raises error if not member
+        is_member = StudyGroupService.get_membership_or_error(group, user)
+
+        result = group.sessions.filter(status=status) if status else group.sessions.all()
+        
+        return result.order_by("-created_at")
+
 
 
 class MembershipService(BaseService):
@@ -175,7 +215,7 @@ class MembershipService(BaseService):
                 "code": "INVALID_STATUS"
             })
     
-        membership = MembershipService._get_membership(group=group, user=user)
+        membership = MembershipService.get_membership_or_error(group=group, user=user)
         membership.status = new_status
         membership.save()
         return {"message": {"updated": True}}
@@ -183,7 +223,7 @@ class MembershipService(BaseService):
     @staticmethod
     def _update_membership_role(group, member, new_role:str) -> dict:
         """Fetches membership and updates its roles."""
-        membership = MembershipService._get_membership(group=group, user=member)
+        membership = MembershipService.get_membership_or_error(group=group, user=member)
         membership.role = new_role
         membership.save()
         return {"message": {"updated": True}}
@@ -225,7 +265,7 @@ class MembershipService(BaseService):
         MembershipService._check_user_role(group=group, acting_user_id=acting_user_id)
         normalized_role = new_role.lower()
 
-        if normalized_role == MembershipService._get_membership(group, member).role:
+        if normalized_role == MembershipService.get_membership_or_none(group, member).role:
             raise ValidationError({
                 "detail":f"{member.username} is already a {normalized_role}",
                 "code":"REQUEST_INVALID"
@@ -237,7 +277,7 @@ class MembershipService(BaseService):
 class SessionService(BaseService):
     @staticmethod
     @transaction.atomic
-    def join(session_id, user):
+    def join(session_id, user): #to be used in the socket
         # when user joins sessions,  an attendance record is automatically created
         session = get_object_or_404(Session, id=session_id)
 
@@ -318,6 +358,99 @@ class SessionService(BaseService):
         return {"message":{"left":True}}
     
 
+
+    @staticmethod
+    def validate_status_transition(instance, new_status):
+        """
+        Validates whether a session status change is allowed.
+        """
+
+        if (
+            instance.status == "cancelled"
+            and new_status in {"scheduled", "on_going"}
+        ):
+            if instance.start < timezone.now():
+                raise ValidationError({
+                    "detail": "Cannot reactivate a cancelled session that is already in the past",
+                    "code": "INVALID_REACTIVATION"
+                })
+            
+
+    @staticmethod
+    def validate_schedule(group_id: int, start: str, end: str, exclude_id: int = None):
+            if isinstance(start, str):
+                start = timezone.datetime.fromisoformat(start)
+            if isinstance(end, str):
+                end = timezone.datetime.fromisoformat(end)
+
+            if timezone.is_naive(start):
+                start = timezone.make_aware(start)
+            if timezone.is_naive(end):
+                end = timezone.make_aware(end)
+
+            if end <= start:
+                raise ValidationError({
+                    "detail": "End time must be after start time",
+                    "code": "INVALID_SCHEDULE"
+                })
+
+            if start < timezone.now():
+                raise ValidationError({
+                    "detail": "Cannot schedule a session in the past",
+                    "code": "INVALID_SCHEDULE"
+                })
+
+            conflicting_query = Session.objects.filter(
+                group_id=group_id,
+                start__lt=end,
+                end__gt=start,
+                status='scheduled'
+            )
+
+            if exclude_id:
+                conflicting_query = conflicting_query.exclude(id=exclude_id)
+
+            if conflicting_query.exists():
+                raise ValidationError({
+                    "DETAIL": "A session is already scheduled during this time",
+                    "code": "CONFLICTING_SCHEDULE"
+                })
+
+            return False
+
+    @staticmethod
+    @transaction.atomic
+    def create_session(data):
+        SessionService.validate_schedule(
+            group_id=data['group'].id,
+            start=data['start'],
+            end=data['end']
+        )
+        return Session.objects.create(**data)
+
+
+    @staticmethod
+    @transaction.atomic
+    def update_session(instance, data):
+        new_status = data.get("status", instance.status)
+        
+        # validates if the status transition is allowed
+        SessionService.validate_status_transition(
+            instance=instance,
+            new_status=new_status,
+        )
+
+        # validate if no conflicting schedule exists
+        SessionService.validate_schedule(
+            group_id=data.get('group', instance.group).id,
+            start=data.get('start', instance.start),
+            end=data.get('end', instance.end),
+            exclude_id=instance.pk
+        )
+        for attr, value in data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
 
 class AttendanceService(BaseService):
     @staticmethod

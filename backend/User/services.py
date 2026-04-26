@@ -20,7 +20,7 @@ class UserService:
         user = get_object_or_404(User, id=user_id)
 
         # getting user total studygroup where he belong
-        memberships = MemberShip.objects.filter(user=user)
+        memberships = MemberShip.objects.filter(user=user, status=MemberShip.MemberShipStatus.ACCEPTED)
         total_groups = memberships.count()
         # getting number of session this week
         today = timezone.now()

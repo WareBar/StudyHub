@@ -34,9 +34,7 @@ from study.services import (
 
 # validators
 from core.validators import require_params
-# for attendance history
-from django.db.models.functions import TruncDate, JSONObject
-from django.contrib.postgres.aggregates import ArrayAgg
+
 
 
 class StudyGroupViewset(GroupRBACMixin, UserRelatedMixin,SearchMixin, ModelViewSet):
@@ -60,39 +58,19 @@ class StudyGroupViewset(GroupRBACMixin, UserRelatedMixin,SearchMixin, ModelViewS
     def attendance_history(self, request, pk=None):
         group = self.get_object()
         # check first if user is a member
-        user = request.user
-        is_member = MemberShip.objects.filter(
-            group=group,
-            user=user,
-            status=MemberShip.MemberShipStatus.ACCEPTED
-        ).exists()
-
-        if not is_member:
-            raise PermissionDenied({
-            "detail": f"You are not a member of {group.name}",
-            "code": "PERMISSION_DENIED",
-            })
-
-        attendances = Attendance.objects.filter(group=group)
-        result = (
-            attendances
-            .annotate(date=TruncDate("created_at"))
-            .values("date")
-            .annotate(
-                users=ArrayAgg(
-                    JSONObject(
-                        id="user__id",
-                        username="user__username",
-                        avatar="user__avatar",
-                    ),
-                    distinct=True
-                )
-            )
-            .order_by("date")
-        )
+        result = StudyGroupService.attendance_history(group_id=group.id, user_id=request.user.id)
         return Response(result)
 
-    
+    # getting sessions for this group
+    @action(detail=True, methods=["get"],permission_classes=[IsAuthenticated])
+    def sessions_list(self, request, pk=None):
+        group = self.get_object()
+        status = request.query_params.get("status", None)
+        result = StudyGroupService.sessions_list(group_id=group.id, user_id=request.user.id, status=status)
+        serializer = SessionSerializer(result, many=True)
+        return Response(serializer.data)
+
+
     # invite
     @action(detail=False, methods=["post"],permission_classes=[IsAuthenticated])
     def invite(self, request):
@@ -197,6 +175,13 @@ class SessionViewset(GroupRBACMixin, SearchMixin, ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['group', 'session_type']
     resource_name = "session"
+
+
+    def perform_create(self, serializer):
+        SessionService.create_session(serializer.validated_data)
+
+    def perform_update(self, serializer):
+        SessionService.update_session(self.get_object(), serializer.validated_data)
 
     # upcoming session
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
