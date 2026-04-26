@@ -178,11 +178,12 @@ class SessionViewset(GroupRBACMixin, SearchMixin, ModelViewSet):
 
 
     def perform_create(self, serializer):
-        SessionService.create_session(serializer.validated_data)
+        instance = SessionService.create_session(serializer.validated_data)
+        serializer.instance = instance
 
     def perform_update(self, serializer):
-        SessionService.update_session(self.get_object(), serializer.validated_data)
-
+        instance = SessionService.update_session(self.get_object(), serializer.validated_data)
+        serializer.instance = instance
     # upcoming session
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def upcoming(self, request):
