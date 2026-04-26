@@ -231,7 +231,7 @@ export default function SignupPage() {
               </form>
               <div className="bg-muted relative hidden md:block">
                 <img
-                  src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExd3pxZWZ3N3Rodm1kamltNDNpMW51a21qaWtxcHpzcHB6ZGViNHZjaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/1yld7nW3oQ2IyRubUm/giphy.gif"
+                  src="https://i.pinimg.com/originals/06/05/b2/0605b2a5f37a52d4bbb604c2a943b858.gif"
                   alt="Image"
                   className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
                 />
