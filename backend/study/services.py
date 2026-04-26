@@ -19,20 +19,31 @@ from django.utils.timezone import now
 from datetime import datetime
 from django.utils import timezone
 class BaseService:
+
     @staticmethod
-    def get_membership_or_none(group, user):
+    def get_membership(group, user):
         return MemberShip.objects.filter(group=group, user=user).first()
 
     @staticmethod
-    def get_membership_or_error(group, user):
-        membership = BaseService.get_membership_or_none(group, user)
+    def require_active_membership(group, user):
+        membership = BaseService.get_membership(group=group, user=user)
+
         if membership is None:
             raise ValidationError({
-                "detail": "You are not a member of this group.",
-                "code": "UNAUTHORIZED"
+                "detail": f"{user.username} not a member of {group.name}",
+                "code": "NO_MEMBERSHIP"
             })
+
+        if membership.status != MemberShip.MemberShipStatus.ACCEPTED:
+            raise ValidationError({
+                "detail": f"{user.username} are not an active member of {group.name}",
+                "code": "NOT_ACTIVE_MEMBER"
+            })
+
         return membership
-    
+
+
+
     @staticmethod
     def _get_group_and_user(group_id: int, user_id: int):
         group = get_object_or_404(StudyGroup, id=group_id)
@@ -93,20 +104,21 @@ class StudyGroupService(BaseService):
     @staticmethod
     def invite(group_id: int, invited_user_id: int):
         group, invited_user = StudyGroupService._get_group_and_user(group_id, invited_user_id)
-        membership = StudyGroupService.get_membership_or_none(group, invited_user)
+        membership_record = StudyGroupService.get_membership(group, invited_user)
 
-        if membership:
-            if membership.status == MemberShip.MemberShipStatus.ACCEPTED:
+        if membership_record:
+            if membership_record.status == MemberShip.MemberShipStatus.ACCEPTED:
                 raise ValidationError({
                     "detail": f"{invited_user.username} is already a member",
                     "code": "ALREADY_MEMBER"
                 })
 
-            if membership.status == MemberShip.MemberShipStatus.PENDING:
+            if membership_record.status == MemberShip.MemberShipStatus.PENDING:
                 raise ValidationError({
-                    "detail": f"{invited_user.username} already has a pending request/invite",
+                    "detail": f"{invited_user.username} already has a pending invite/request",
                     "code": "ALREADY_PENDING"
                 })
+
 
         # i am keeping a strict one group, one membership per one user
         try:
@@ -137,22 +149,30 @@ class StudyGroupService(BaseService):
             })
 
         group, user = StudyGroupService._get_group_and_user(group_id, user_id)
-        membership = StudyGroupService.get_membership_or_none(group, user)
+        # check if the user has already an exisinng membership record
+        membership_record = StudyGroupService.get_membership(group, user)
+
+        if membership_record:
+            if membership_record.status == MemberShip.MemberShipStatus.PENDING:
+                raise ValidationError({
+                    "detail": f"{user.username} already has a pending invite/request",
+                    "code": "ALREADY_PENDING"
+                })
 
         actions = {
             "join": StudyGroupService._handle_join,
             "cancel": StudyGroupService._handle_cancel,
         }
 
-        return actions[request_type](group, user, membership)
+        return actions[request_type](group, user, membership_record)
 
 
     # simply return things or prepares or shape data, no saving action
     @staticmethod
     def attendance_history(group_id:int, user_id:int) -> dict:
         group, user = StudyGroupService._get_group_and_user(group_id, user_id)
-        # raises error if not member
-        is_member = StudyGroupService.get_membership_or_error(group, user)
+        # check if the user is an accepted member
+        membership_record = StudyGroupService.require_active_membership(group, user)
 
         attendances = Attendance.objects.filter(group=group)
         result = (
@@ -177,8 +197,8 @@ class StudyGroupService(BaseService):
     @staticmethod
     def sessions_list(group_id:int, user_id:int, status:str) -> dict:
         group, user = StudyGroupService._get_group_and_user(group_id, user_id)
-        # raises error if not member
-        is_member = StudyGroupService.get_membership_or_error(group, user)
+        # check if the user is an accepted member
+        membership_record = StudyGroupService.require_active_membership(group, user)
 
         result = group.sessions.filter(status=status) if status else group.sessions.all()
         
@@ -215,7 +235,7 @@ class MembershipService(BaseService):
                 "code": "INVALID_STATUS"
             })
     
-        membership = MembershipService.get_membership_or_error(group=group, user=user)
+        membership = MembershipService.get_membership(group=group, user=user)
         membership.status = new_status
         membership.save()
         return {"message": {"updated": True}}
@@ -223,7 +243,7 @@ class MembershipService(BaseService):
     @staticmethod
     def _update_membership_role(group, member, new_role:str) -> dict:
         """Fetches membership and updates its roles."""
-        membership = MembershipService.get_membership_or_error(group=group, user=member)
+        membership = MembershipService.get_membership(group=group, user=member)
         membership.role = new_role
         membership.save()
         return {"message": {"updated": True}}
@@ -265,7 +285,9 @@ class MembershipService(BaseService):
         MembershipService._check_user_role(group=group, acting_user_id=acting_user_id)
         normalized_role = new_role.lower()
 
-        if normalized_role == MembershipService.get_membership_or_none(group, member).role:
+        membership_record = MembershipService.get_membership(group, member)
+    
+        if normalized_role == membership_record.role:
             raise ValidationError({
                 "detail":f"{member.username} is already a {normalized_role}",
                 "code":"REQUEST_INVALID"
