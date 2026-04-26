@@ -36,7 +36,7 @@ export default function MyGroupsPage() {
   const {user} = useAuth()
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<GroupFilter>("all");
-  const [selectSubject, setSelectedSubject] = useState<Subject | null>()
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>()
   const [showCreateStudyGroupDialog, setShowCreateStudyGroupDialog] = useState<boolean>(false)
 
 
@@ -51,8 +51,8 @@ export default function MyGroupsPage() {
       params.set("memberships__role", activeFilter);
     }
 
-    if (selectSubject){
-      params.set("subject", String(selectSubject.id))
+    if (selectedSubject){
+      params.set("subject", String(selectedSubject.id))
     }
 
     const separator = baseUrl.includes("?") ? "&" : "?";
@@ -70,7 +70,7 @@ export default function MyGroupsPage() {
 
   const results = useQueries({
     queries:[
-      {queryKey: ['my-study-groups', searchQuery], queryFn: fetchMyGroups},
+      {queryKey: ['my-study-groups', searchQuery, selectedSubject, activeFilter], queryFn: fetchMyGroups},
       {queryKey: ['subjects'], queryFn:fetchSubjects}
     ]
   })
@@ -135,7 +135,7 @@ export default function MyGroupsPage() {
                 >
                   <Choose
                   onValueChange={(val)=>setSelectedSubject(val)}
-                  value={selectSubject}
+                  value={selectedSubject}
                   labelKey="name"
                   choices={subjects.data?.results}
                   width="sm"/>

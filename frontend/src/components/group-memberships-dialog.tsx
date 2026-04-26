@@ -22,10 +22,10 @@ import { useMembership } from "@/hooks/useMembership";
 import NoResult from "./no-result";
 import { QuickProfileView } from "./quick-profile-view";
 
-interface GroupMembershipsDialogProps {
-    groupId:string,
+export interface GroupMembershipsDialogProps {
+    groupId: string | undefined,
     open:boolean,
-    onOpenChange:()=>void
+    onOpenChange:(arg0:boolean)=>void
 }
 
 
@@ -44,7 +44,7 @@ interface ControlAuthorityProps {
 
 
 interface MembershipStatsProps {
-    groupId:string
+    groupId: string | undefined,
     setStatusLabels: (arg0:string[])=>void
 }
 
@@ -88,7 +88,7 @@ export const GroupMembershipsDialog = ({groupId, open, onOpenChange}:GroupMember
     const fetchGroupMembership = async () => {
         const baseUrl = "/membership/";
         const params = new URLSearchParams();
-        params.set("group",groupId)
+        params.set("group", groupId)
         if (searchQuery){
             params.set("search", searchQuery)
         }
