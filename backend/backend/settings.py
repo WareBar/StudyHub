@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'core',
     'study',
     'chat',
+    'video',
     'notification',
     'django_filters',
     # Allauth (for OAuth only)
@@ -99,9 +100,13 @@ ASGI_APPLICATION = 'backend.asgi.application'
 
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",  # For dev
-    }
-}
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+} 
+
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
@@ -158,6 +163,15 @@ REST_FRAMEWORK = {
     # "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     # "PAGE_SIZE": 10,  
 }
+
+
+SPECTACULAR_SETTINGS = {
+    "ENUM_NAME_OVERRIDES": {
+        "MembershipStatusEnum": "study.models.MemberShip.MemberShipStatus",
+        "SessionStatusEnum": "study.models.Session.SessionStatus",
+    }
+}
+
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=120),
