@@ -8,9 +8,11 @@ import {
 } from "react";
 import axios from 'axios'
 
-
 // the backend url
-const API_URL = 'http://127.0.0.1:8000'
+const backendUrl = import.meta.env.VITE_BACKEND_URL
+const isLocalhost = backendUrl.startsWith("127.0.0.1") || backendUrl.startsWith("localhost");
+const protocol = isLocalhost ? "http" : "https";
+const API_URL = `${protocol}://${backendUrl}`;
 
 
 // type definitions
@@ -160,13 +162,13 @@ export const AuthProvider = ({children}:AuthProviderProps) => {
         console.error("Login failed:", error.response?.data || error.message);
         return {
         success: false,
-        error: error.response?.data || { detail: "An unexpected error occurred." },
+        error: error.response?.data || { detail: error },
         };
     }
     };
 
 
-
+    
     // function for logging in with Google
     const loginWithGoogle = async (googleToken: string) => {
     try {

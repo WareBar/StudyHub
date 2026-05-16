@@ -15,6 +15,7 @@ from datetime import timedelta
 import os
 from dotenv import load_dotenv
 from urllib.parse import urlparse, parse_qsl
+from celery.schedules import crontab
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -51,6 +52,7 @@ INSTALLED_APPS = [
     'core',
     'study',
     'chat',
+    'video',
     'notification',
     'django_filters',
     # Allauth (for OAuth only)
@@ -99,9 +101,13 @@ ASGI_APPLICATION = 'backend.asgi.application'
 
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",  # For dev
-    }
-}
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+} 
+
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
@@ -159,6 +165,15 @@ REST_FRAMEWORK = {
     # "PAGE_SIZE": 10,  
 }
 
+
+SPECTACULAR_SETTINGS = {
+    "ENUM_NAME_OVERRIDES": {
+        "MembershipStatusEnum": "study.models.MemberShip.MemberShipStatus",
+        "SessionStatusEnum": "study.models.Session.SessionStatus",
+    }
+}
+
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=120),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1), #refresh token is needed to create another new access token when it expires
@@ -188,3 +203,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = True #to avoid problems in the deployment or fullstack dev
 CORS_ALLOW_CREDENTIALS = True
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_BEAT_SCHEDULE = {
+    'cleanup-sessions': {
+        'task': 'study.tasks.cleanup_finished_sessions',
+        'schedule': crontab(minute='*/15'),
+    },
+}
+CELERY_TIMEZONE = 'UTC'

@@ -1,0 +1,50 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Redis",
+      "type": "shell",
+      "command": "wsl -e bash -c 'pkill redis-server; sleep 1; redis-server'",
+      "presentation": { "panel": "new", "name": "Redis" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Django",
+      "type": "shell",
+      "command": "source venv/Scripts/activate && python manage.py runserver",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "presentation": { "panel": "new", "name": "Django" },
+      "problemMatcher": []
+    },
+    {
+      "label": "ReactJs",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "presentation": { "panel": "new", "name": "ReactJs" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Celery Worker",
+      "type": "shell",
+      "command": "source venv/Scripts/activate && celery -A backend worker --loglevel=info --pool=solo",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "presentation": { "panel": "new", "name": "Celery Worker" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Celery Beat",
+      "type": "shell",
+      "command": "source venv/Scripts/activate && celery -A backend beat --loglevel=info",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "presentation": { "panel": "new", "name": "Celery Beat" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Start All",
+      "dependsOn": ["Redis", "Django", "ReactJs","Celery Worker", "Celery Beat"],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    }
+  ]
+}

@@ -64,7 +64,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen">
+    <div className="flex items-center justify-center h-screen bg-primary/95">
       <div className="w-5xl">
         <div className="flex flex-col gap-6">
           <Card className="overflow-hidden p-0">
@@ -156,7 +156,7 @@ export default function LoginPage() {
             </CardContent>
           </Card>
 
-          <FieldDescription className="px-6 text-center">
+          <FieldDescription className="px-6 text-center text-white">
             By clicking continue, you agree to our <a href="#">Terms of Service</a> and{" "}
             <a href="#">Privacy Policy</a>.
           </FieldDescription>

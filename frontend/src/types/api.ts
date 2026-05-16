@@ -699,6 +699,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/study-group/{id}/sessions_list/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Simply wires GroupPermission into any ModelViewSet.
+         *     Subclasses only need to declare resource_name.
+         *
+         *     Example:
+         *         class SessionViewset(GroupRBACMixin, ModelViewSet):
+         *             resource_name = "session"
+         */
+        get: operations["study_group_sessions_list_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/study-group/invite/": {
         parameters: {
             query?: never;
@@ -870,23 +894,17 @@ export interface components {
         AttendanceStatusEnum: "present" | "absent" | "late";
         Chat: {
             readonly id: number;
-            readonly sender: string;
-            readonly reply_to: string;
+            readonly sender: components["schemas"]["SenderSchema"];
+            readonly reply_to: components["schemas"]["ReplyToSchema"] | null;
             /** Format: date-time */
             readonly created_at: string;
             /** Format: date-time */
             readonly updated_at: string;
-            chat_type?: components["schemas"]["ChatTypeEnum"];
-            message: string;
-            group: number;
+            object_id?: number | null;
+            attachments?: string | null;
+            message?: string | null;
+            content_type?: number | null;
         };
-        /**
-         * @description * `text` - Text
-         *     * `image` - Image
-         *     * `video` - Video
-         * @enum {string}
-         */
-        ChatTypeEnum: "text" | "image" | "video";
         MemberShip: {
             readonly id: number;
             readonly user: components["schemas"]["SimpleUser"];
@@ -894,7 +912,7 @@ export interface components {
             readonly created_at: string;
             /** Format: date-time */
             readonly updated_at: string;
-            status?: components["schemas"]["MemberShipStatusEnum"];
+            status?: components["schemas"]["MembershipStatusEnum"];
             role?: components["schemas"]["RoleEnum"];
             group: number;
         };
@@ -905,7 +923,7 @@ export interface components {
          *     * `cancelled` - Cancelled
          * @enum {string}
          */
-        MemberShipStatusEnum: "accepted" | "rejected" | "pending" | "cancelled";
+        MembershipStatusEnum: "accepted" | "rejected" | "pending" | "cancelled";
         Notification: {
             readonly id: number;
             to: components["schemas"]["User"];
@@ -991,6 +1009,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["Session"][];
         };
+        PaginatedSimpleUserList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["SimpleUser"][];
+        };
         PaginatedStudyGroupList: {
             /** @example 123 */
             count: number;
@@ -1045,15 +1078,16 @@ export interface components {
         };
         PatchedChat: {
             readonly id?: number;
-            readonly sender?: string;
-            readonly reply_to?: string;
+            readonly sender?: components["schemas"]["SenderSchema"];
+            readonly reply_to?: components["schemas"]["ReplyToSchema"] | null;
             /** Format: date-time */
             readonly created_at?: string;
             /** Format: date-time */
             readonly updated_at?: string;
-            chat_type?: components["schemas"]["ChatTypeEnum"];
-            message?: string;
-            group?: number;
+            object_id?: number | null;
+            attachments?: string | null;
+            message?: string | null;
+            content_type?: number | null;
         };
         PatchedMemberShip: {
             readonly id?: number;
@@ -1062,7 +1096,7 @@ export interface components {
             readonly created_at?: string;
             /** Format: date-time */
             readonly updated_at?: string;
-            status?: components["schemas"]["MemberShipStatusEnum"];
+            status?: components["schemas"]["MembershipStatusEnum"];
             role?: components["schemas"]["RoleEnum"];
             group?: number;
         };
@@ -1093,16 +1127,29 @@ export interface components {
             location?: string | null;
             notes?: string;
         };
+        PatchedSimpleUser: {
+            readonly id?: number;
+            username?: string | null;
+            first_name?: string;
+            last_name?: string;
+            /**
+             * Email address
+             * Format: email
+             */
+            email?: string;
+            /** Format: uri */
+            avatar?: string | null;
+        };
         PatchedStudyGroup: {
             readonly id?: number;
             readonly creator_detail?: components["schemas"]["SimpleUser"];
             readonly subject_detail?: components["schemas"]["Subject"];
-            readonly memberships?: string;
+            readonly memberships?: components["schemas"]["MemberShip"][];
             creator?: number;
             subject?: number;
-            readonly next_session?: string;
-            readonly total_sessions?: string;
-            readonly membership_status?: string;
+            readonly next_session?: components["schemas"]["SessionSimple"] | null;
+            readonly total_sessions?: number;
+            readonly membership_status?: string | null;
             /** Format: date-time */
             readonly created_at?: string;
             /** Format: date-time */
@@ -1119,34 +1166,11 @@ export interface components {
             readonly updated_at?: string;
             name?: string;
         };
-        PatchedUser: {
-            readonly id?: number;
-            password?: string;
-            /**
-             * Superuser status
-             * @description Designates that this user has all permissions without explicitly assigning them.
-             */
-            is_superuser?: boolean;
-            username?: string | null;
-            last_name?: string;
-            first_name?: string;
-            /**
-             * Email address
-             * Format: email
-             */
-            email?: string;
-            /** Format: uri */
-            avatar?: string | null;
-            is_active?: boolean;
-            is_admin?: boolean;
-            /** Format: date-time */
-            date_joined?: string;
-            /** Format: date-time */
-            last_login?: string;
-            /** @description The groups this user belongs to. A user will get all permissions granted to each of their groups. */
-            groups?: number[];
-            /** @description Specific permissions for this user. */
-            user_permissions?: number[];
+        ReplyToSchema: {
+            id: number;
+            message: string | null;
+            attachments: string | null;
+            sender: components["schemas"]["SenderSchema"];
         };
         /**
          * @description * `creator` - Creator
@@ -1155,6 +1179,14 @@ export interface components {
          * @enum {string}
          */
         RoleEnum: "creator" | "moderator" | "member";
+        SenderSchema: {
+            id: number;
+            first_name: string;
+            last_name: string;
+            /** Format: email */
+            email: string;
+            avatar: string | null;
+        };
         Session: {
             readonly id: number;
             readonly group_detail: components["schemas"]["StudyGroupSimple"];
@@ -1171,6 +1203,14 @@ export interface components {
             end: string;
             location?: string | null;
             notes: string;
+        };
+        SessionSimple: {
+            readonly id: number;
+            /** Format: date-time */
+            start: string;
+            /** Format: date-time */
+            end: string;
+            status?: components["schemas"]["SessionStatusEnum"];
         };
         /**
          * @description * `finished` - Finished
@@ -1203,12 +1243,12 @@ export interface components {
             readonly id: number;
             readonly creator_detail: components["schemas"]["SimpleUser"];
             readonly subject_detail: components["schemas"]["Subject"];
-            readonly memberships: string;
+            readonly memberships: components["schemas"]["MemberShip"][];
             creator: number;
             subject: number;
-            readonly next_session: string;
-            readonly total_sessions: string;
-            readonly membership_status: string;
+            readonly next_session: components["schemas"]["SessionSimple"] | null;
+            readonly total_sessions: number;
+            readonly membership_status: string | null;
             /** Format: date-time */
             readonly created_at: string;
             /** Format: date-time */
@@ -1564,6 +1604,7 @@ export interface operations {
                 /** @description Number of results to return per page. */
                 page_size?: number;
                 sender?: number;
+                session?: number;
             };
             header?: never;
             path?: never;
@@ -1588,7 +1629,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
                 "application/json": components["schemas"]["Chat"];
                 "application/x-www-form-urlencoded": components["schemas"]["Chat"];
@@ -1638,7 +1679,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
                 "application/json": components["schemas"]["Chat"];
                 "application/x-www-form-urlencoded": components["schemas"]["Chat"];
@@ -2544,6 +2585,28 @@ export interface operations {
             };
         };
     };
+    study_group_sessions_list_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this study group. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudyGroup"];
+                };
+            };
+        };
+    };
     study_group_invite_create: {
         parameters: {
             query?: never;
@@ -2720,7 +2783,12 @@ export interface operations {
     };
     user_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2732,7 +2800,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["User"][];
+                    "application/json": components["schemas"]["PaginatedSimpleUserList"];
                 };
             };
         };
@@ -2746,9 +2814,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["User"];
-                "application/x-www-form-urlencoded": components["schemas"]["User"];
-                "multipart/form-data": components["schemas"]["User"];
+                "application/json": components["schemas"]["SimpleUser"];
+                "application/x-www-form-urlencoded": components["schemas"]["SimpleUser"];
+                "multipart/form-data": components["schemas"]["SimpleUser"];
             };
         };
         responses: {
@@ -2757,7 +2825,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["User"];
+                    "application/json": components["schemas"]["SimpleUser"];
                 };
             };
         };
@@ -2779,7 +2847,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["User"];
+                    "application/json": components["schemas"]["SimpleUser"];
                 };
             };
         };
@@ -2796,9 +2864,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["User"];
-                "application/x-www-form-urlencoded": components["schemas"]["User"];
-                "multipart/form-data": components["schemas"]["User"];
+                "application/json": components["schemas"]["SimpleUser"];
+                "application/x-www-form-urlencoded": components["schemas"]["SimpleUser"];
+                "multipart/form-data": components["schemas"]["SimpleUser"];
             };
         };
         responses: {
@@ -2807,7 +2875,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["User"];
+                    "application/json": components["schemas"]["SimpleUser"];
                 };
             };
         };
@@ -2845,9 +2913,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedUser"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedUser"];
-                "multipart/form-data": components["schemas"]["PatchedUser"];
+                "application/json": components["schemas"]["PatchedSimpleUser"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedSimpleUser"];
+                "multipart/form-data": components["schemas"]["PatchedSimpleUser"];
             };
         };
         responses: {
@@ -2856,7 +2924,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["User"];
+                    "application/json": components["schemas"]["SimpleUser"];
                 };
             };
         };
@@ -2878,7 +2946,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["User"];
+                    "application/json": components["schemas"]["SimpleUser"];
                 };
             };
         };
@@ -2897,7 +2965,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["User"];
+                    "application/json": components["schemas"]["SimpleUser"];
                 };
             };
         };
@@ -2916,7 +2984,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["User"];
+                    "application/json": components["schemas"]["SimpleUser"];
                 };
             };
         };

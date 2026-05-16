@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useState, useCallback } from "react";
+import { useSound } from "@/hooks/useSound";
 
 export type ToastType = "success" | "error" | "info" | "warning";
 
@@ -20,9 +21,12 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const {play} = useSound()
 
   const addToast = useCallback((toast: Omit<Toast, "id">) => {
     const id = crypto.randomUUID();
+
+    play(toast.type ?? "warning")
     setToasts(prev => [...prev, { ...toast, id }]);
   }, []);
 

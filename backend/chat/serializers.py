@@ -4,6 +4,22 @@ from chat.models import Chat
 from study.models import (
     MemberShip
 )
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
+
+class SenderSchema(serializers.Serializer):
+    id = serializers.IntegerField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    email = serializers.EmailField()
+    avatar = serializers.CharField(allow_null=True)
+
+
+class ReplyToSchema(serializers.Serializer):
+    id = serializers.IntegerField()
+    message = serializers.CharField(allow_null=True)
+    attachments = serializers.CharField(allow_null=True)
+    sender = SenderSchema()
 
 class ChatSerializer(ModelSerializer):
     sender = serializers.SerializerMethodField()
@@ -31,9 +47,8 @@ class ChatSerializer(ModelSerializer):
             
 
 
-
-
     # cant use sender or user seralizer since we need to nitpick information to show,
+    @extend_schema_field(SenderSchema)
     def get_sender(self, obj):
         return {
             "id": obj.sender.id,
@@ -43,14 +58,15 @@ class ChatSerializer(ModelSerializer):
             "avatar":obj.sender.avatar,
         }
     
+    @extend_schema_field(ReplyToSchema(allow_null=True)) 
     def get_reply_to(self, obj):
         if not obj.reply_to:
             return None
 
         return {
             "id": obj.reply_to.id,
-            "content": obj.reply_to.content,
-            "content_type":obj.reply_to.content_type,
+            "message": obj.reply_to.message,
+            "attachments":obj.reply_to.attachments,
             "sender": {
                 "id": obj.reply_to.sender.id,
                 "first_name": obj.reply_to.sender.first_name,

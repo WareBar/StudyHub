@@ -1,11 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, MapPin, Video, FileText } from "lucide-react";
+import { Notebook, Clock, MapPin, Video, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatTime, formatSessionDate } from "@/utils/time";
 import { useSession } from "@/hooks/useSession";
-
+import { Link } from "react-router-dom";
 
 interface GroupDetail {
   id: number;
@@ -68,11 +68,18 @@ export function SessionCard({ session, variant = "upcoming", onJoin, showActions
             <Button size="sm" onClick={onJoin}>
               {isOnline ? (
                 <>
-                  <Video className="h-4 w-4 mr-1" />
-                  Join
+                  <Link
+                  className="flex items-center"
+                  to={`session_video_room/${session.group_detail.id}/${session.id}`} target="_blank" rel="noopener noreferrer">
+                    <Video className="h-4 w-4 mr-1" />
+                    Join
+                  </Link>
                 </>
               ) : (
-                "View"
+                <>
+                <Notebook/>
+                View
+                </>
               )}
             </Button>
           )}

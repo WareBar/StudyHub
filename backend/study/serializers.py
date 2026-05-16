@@ -15,7 +15,8 @@ from study.models import (
 from User.simple_serializers import SimpleUserSerializer
 from User.models import User
 from django.utils import timezone
-
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 
 # lightweight serializer
 class StudyGroupSimpleSerializer(ModelSerializer):
@@ -50,6 +51,9 @@ class MemberShipSerializer(ModelSerializer):
                 )
 
         return attrs
+
+
+
 
 class SubjectSerializer(ModelSerializer):
     class Meta:
@@ -89,11 +93,12 @@ class StudyGroupSerializer(ModelSerializer):
         return group
 
     # get accepted membership
+    @extend_schema_field(MemberShipSerializer(many=True))
     def get_memberships(self, obj):
         data = obj.memberships.filter(status=MemberShip.MemberShipStatus.ACCEPTED)
         return MemberShipSerializer(data, many=True, read_only=True).data
 
-
+    @extend_schema_field(SessionSimpleSerializer(allow_null=True))
     def get_next_session(self, obj):
         today = timezone.now()
 
@@ -107,11 +112,13 @@ class StudyGroupSerializer(ModelSerializer):
             return SessionSimpleSerializer(next_session).data
         return None
     
+    @extend_schema_field(OpenApiTypes.INT)
     def get_total_sessions(self, obj):
         all_sessions = obj.sessions.all().count()
         return all_sessions
 
     # to check if the logged in user is member, not member, or has pending membership request
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_membership_status(self, obj):
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
