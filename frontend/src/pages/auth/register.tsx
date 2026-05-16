@@ -117,7 +117,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex items-center justify-center my-5">
+    <div className="flex items-center h-screen justify-center bg-primary/95">
       <div className="w-full max-w-md md:max-w-4xl px-4">
         <div className="flex flex-col gap-6">
           <Card className="overflow-hidden p-0">
@@ -238,7 +238,7 @@ export default function SignupPage() {
               </div>
             </CardContent>
           </Card>
-          <FieldDescription className="px-6 text-center">
+          <FieldDescription className="px-6 text-center text-white">
             By clicking continue, you agree to our <a href="#">Terms of Service</a> and{" "}
             <a href="#">Privacy Policy</a>.
           </FieldDescription>

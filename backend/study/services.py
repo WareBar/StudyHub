@@ -16,21 +16,24 @@ from django.db import IntegrityError
 from django.db.models.functions import TruncDate, JSONObject
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.utils.timezone import now
-from datetime import datetime
 from django.utils import timezone
 class BaseService:
-
     @staticmethod
-    def get_membership(group, user):
-        return MemberShip.objects.filter(group=group, user=user).first()
+    def get_membership(group=None, user=None, group_id=None, user_id=None):
+        return MemberShip.objects.filter(
+            group=group,
+            user=user
+        ).first()
 
     @staticmethod
     def require_active_membership(group, user):
-        membership = BaseService.get_membership(group=group, user=user)
-
+        membership = BaseService.get_membership(
+            group=group,
+            user=user,
+        )
         if membership is None:
             raise ValidationError({
-                "detail": f"{user.username} not a member of {group.name}",
+                "detail": f"No Membership in {group.name}",
                 "code": "NO_MEMBERSHIP"
             })
 
@@ -298,7 +301,16 @@ class MembershipService(BaseService):
 
 class SessionService(BaseService):
     @staticmethod
-    @transaction.atomic
+    def _check_if_session_finished(session):
+        print("CHECKING SEESSION___________________________________________________________________________________________")
+        time_now = timezone.now()
+        if time_now >= session.end:
+            session.status = Session.SessionStatus.FINISHED
+            session.save()
+            print("MARRRKED___________________________________________________________")
+
+
+    @staticmethod
     def join(session_id, user): #to be used in the socket
         # when user joins sessions,  an attendance record is automatically created
         session = get_object_or_404(Session, id=session_id)
@@ -316,6 +328,10 @@ class SessionService(BaseService):
                 "code": "NOT_MEMBER"
             })
 
+
+        # check time right now, if time is equal to or greater than session end time, mark as finished
+        SessionService._check_if_session_finished(session=session)
+
         if session.end < now():
             # return {"error": "Session already ended"}
             raise ValidationError({
@@ -324,19 +340,7 @@ class SessionService(BaseService):
             })
 
 
-        defaults = {"group": session.group}
-
-        if session.session_type == Session.SessionTypes.PHYSICAL:
-            defaults["check_in_time"] = now()
-        else:
-            defaults["last_active"] = now()
-
-        Attendance.objects.get_or_create(
-            user=user,
-            session=session,
-            defaults=defaults,
-            is_active=True
-        )
+        SessionService._create_attendance(session=session, user=user)
 
         return {"message":{"joined":True}}
     
@@ -377,12 +381,16 @@ class SessionService(BaseService):
         attendance.is_active = False
         attendance.save()
 
+
+        # check time right now, if time is equal to or greater than session end time, mark as finished
+        SessionService._check_if_session_finished(session=session)
+
         return {"message":{"left":True}}
     
 
 
     @staticmethod
-    def validate_status_transition(instance, new_status):
+    def _validate_status_transition(instance, new_status):
         """
         Validates whether a session status change is allowed.
         """
@@ -399,7 +407,7 @@ class SessionService(BaseService):
             
 
     @staticmethod
-    def validate_schedule(group_id: int, start: str, end: str, exclude_id: int = None):
+    def _validate_schedule(group_id: int, start: str, end: str, exclude_id: int = None):
             if isinstance(start, str):
                 start = timezone.datetime.fromisoformat(start)
             if isinstance(end, str):
@@ -442,8 +450,8 @@ class SessionService(BaseService):
 
     @staticmethod
     @transaction.atomic
-    def create_session(data):
-        SessionService.validate_schedule(
+    def _create_session(data):
+        SessionService._validate_schedule(
             group_id=data['group'].id,
             start=data['start'],
             end=data['end']
@@ -453,17 +461,36 @@ class SessionService(BaseService):
 
     @staticmethod
     @transaction.atomic
+    def _create_attendance(session, user):
+        defaults = {"group": session.group}
+        defaults["is_active"] = True
+        defaults["status"] = Attendance.AttendanceStatus.PRESENT
+
+        if session.session_type == Session.SessionTypes.PHYSICAL:
+            defaults["check_in_time"] = now()
+        else:
+            defaults["last_active"] = now()
+
+        Attendance.objects.get_or_create(
+            user=user,
+            session=session,
+            defaults=defaults,
+        )
+
+
+    @staticmethod
+    @transaction.atomic
     def update_session(instance, data):
         new_status = data.get("status", instance.status)
         
         # validates if the status transition is allowed
-        SessionService.validate_status_transition(
+        SessionService._validate_status_transition(
             instance=instance,
             new_status=new_status,
         )
 
         # validate if no conflicting schedule exists
-        SessionService.validate_schedule(
+        SessionService._validate_schedule(
             group_id=data.get('group', instance.group).id,
             start=data.get('start', instance.start),
             end=data.get('end', instance.end),
@@ -513,6 +540,5 @@ class AttendanceService(BaseService):
         attendance.save()
 
         return {"message":"Ok"}
-
 
 

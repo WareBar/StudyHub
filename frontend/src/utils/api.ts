@@ -1,12 +1,12 @@
 import axios from "axios";
 
 const API_URL = import.meta.env.VITE_BACKEND_URL;
+const isLocalhost = API_URL.startsWith("127.0.0.1") || API_URL.startsWith("localhost");
+const protocol = isLocalhost ? "http" : "https";
 
 const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  baseURL: `${protocol}://${API_URL}`,
+  headers: { "Content-Type": "application/json" },
 });
 
 api.interceptors.request.use(

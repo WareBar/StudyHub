@@ -1,10 +1,12 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { LoadingThree } from "@/components/loading";
+
 
 const GuestRoute = () => {
   const { user, isLoading } = useAuth();
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <LoadingThree/>;
 
   // If already logged in → go to dashboard
   if (user) {

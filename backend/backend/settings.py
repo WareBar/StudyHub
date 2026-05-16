@@ -15,6 +15,7 @@ from datetime import timedelta
 import os
 from dotenv import load_dotenv
 from urllib.parse import urlparse, parse_qsl
+from celery.schedules import crontab
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -202,3 +203,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = True #to avoid problems in the deployment or fullstack dev
 CORS_ALLOW_CREDENTIALS = True
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_BEAT_SCHEDULE = {
+    'cleanup-sessions': {
+        'task': 'study.tasks.cleanup_finished_sessions',
+        'schedule': crontab(minute='*/15'),
+    },
+}
+CELERY_TIMEZONE = 'UTC'

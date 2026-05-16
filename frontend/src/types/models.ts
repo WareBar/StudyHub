@@ -7,4 +7,3 @@ export type AttendanceProps = components["schemas"]["Attendance"]
 export type SessionProps = components["schemas"]["Session"]
 export type ChatProps = components["schemas"]["Chat"]
 export type MembershipProps = components["schemas"]["MemberShip"]
-// export type sssssssssss

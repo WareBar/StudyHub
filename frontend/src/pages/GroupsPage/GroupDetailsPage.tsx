@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SessionCard, type Session } from "@/components/SessionCard";
 import {
@@ -17,8 +16,8 @@ import {
   XCircle,
   UserPlus,
   ArrowLeft,
-  Send,
   CheckCircle,
+  List, ClipboardList, Paperclip
 } from "lucide-react";
 import api from "@/utils/api";
 import { useQuery } from "@tanstack/react-query";
@@ -33,7 +32,8 @@ import { getRoleBadge } from "@/components/get-role-badge";
 import { CreateSessionDialog } from "@/components/create-session-dialog";
 import { useAuth } from "@/context/AuthContext";
 import type { StudyGroupProps, MembershipProps, UserProps } from "@/types/models";
-
+import { capitalize } from "@/utils/word";
+import { ChatBox } from "@/components/chat-box";
 
 
 interface GroupPageHeaderProps {
@@ -74,44 +74,13 @@ type AttendanceProps = {
 }
 
 
-
-const chatMessages = [
-  {
-    id: "1",
-    user: "Alex Johnson",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=alex",
-    message: "Hey everyone! Ready for today's session?",
-    time: "5:45 PM",
-  },
-  {
-    id: "2",
-    user: "Sarah Chen",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=sarah",
-    message: "Yes! I have some questions about integration by parts",
-    time: "5:47 PM",
-  },
-  {
-    id: "3",
-    user: "Emma Davis",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=emma",
-    message: "Same here, chapter 7 was tough 😅",
-    time: "5:48 PM",
-  },
-  {
-    id: "4",
-    user: "Alex Johnson",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=alex",
-    message: "Perfect, we'll cover that today. See you all in 10 minutes!",
-    time: "5:50 PM",
-  },
-];
-
-
+type ChatTabProps = {
+  groupId: string | undefined,
+}
 
 
 export default function GroupDetailsPage() {
   const { id } = useParams();
-  const [message, setMessage] = useState("");
   const { 
     joinRequest, isRequesting,
     cancelRequest, isCancellingRequest
@@ -193,17 +162,18 @@ export default function GroupDetailsPage() {
               case "accepted":
                 return (
                   <Tabs defaultValue="sessions" className="space-y-6">
-                    <TabsList className="bg-muted/50">
+                    <TabsList className="bg-muted/50 flex">
                       {
-                        ['sessions','members','chat','attendance','resources'].map((trigger)=>{
+                        [{'name':"sessions", "icon":List},{"name":"members", "icon":Users},{"name":"chat", "icon":MessageCircle},{"name":"attendance", "icon":ClipboardList},{"name":"resources", "icon":Paperclip}].map((trigger)=>{
+                          const Icon = trigger.icon
                           return (
-                            <TabsTrigger value={trigger}>{trigger}</TabsTrigger>
+                            <TabsTrigger 
+                            className=""
+                            value={trigger.name}><Icon className="text-primary"/> {capitalize(trigger.name)}</TabsTrigger>
                           )
                         })
                       }
                     </TabsList>
-                    
-
                     <TabsContent value="sessions">
                       <SessionsTab groupId={id} userRole={userRoleInGroup}/>
                     </TabsContent>
@@ -216,47 +186,9 @@ export default function GroupDetailsPage() {
                     </TabsContent>
 
                     <TabsContent value="chat">
-                      <Card variant="elevated" className="h-[500px] flex flex-col">
-                        <CardHeader className="border-b border-border py-4">
-                          <CardTitle className="text-lg flex items-center gap-2">
-                            <MessageCircle className="h-5 w-5 text-primary" />
-                            Group Chat
-                          </CardTitle>
-                        </CardHeader>
-
-                        <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
-                          {chatMessages.map(msg => (
-                            <div key={msg.id} className="flex items-start gap-3">
-                              <Avatar size="sm">
-                                <AvatarImage src={msg.avatar} alt={msg.user} />
-                                <AvatarFallback>{msg.user[0]}</AvatarFallback>
-                              </Avatar>
-
-                              <div className="flex-1">
-                                <div className="flex items-baseline gap-2">
-                                  <span className="font-medium text-sm">{msg.user}</span>
-                                  <span className="text-xs text-muted-foreground">{msg.time}</span>
-                                </div>
-                                <p className="text-sm mt-1">{msg.message}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </CardContent>
-
-                        <div className="p-4 border-t border-border">
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="Type a message..."
-                              value={message}
-                              onChange={e => setMessage(e.target.value)}
-                              className="flex-1"
-                            />
-                            <Button>
-                              <Send className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </Card>
+                      <ChatTab
+                      groupId={id}
+                      />
                     </TabsContent>
 
                     <TabsContent value="attendance">
@@ -327,8 +259,8 @@ const GroupPageHeader = ({detail}:GroupPageHeaderProps) => {
                   <div className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-primary" />
                     <div>
-                      <div className="font-semibold">Tuesday</div>
-                      <div className="text-xs text-muted-foreground">Schedule</div>
+                      <div className="font-semibold">{detail.creator_detail.email}</div>
+                      <div className="text-xs text-muted-foreground">Creator</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -406,7 +338,7 @@ const SessionsTab = ({groupId, userRole}:SessionsTabProps) =>{
                   key={index}
                   value={status}
                   onClick={()=>{setSelectedStatus(status)}}
-                  >{status}</TabsTrigger>
+                  >{capitalize(status)}</TabsTrigger>
                 )
               })
             }
@@ -429,6 +361,7 @@ const SessionsTab = ({groupId, userRole}:SessionsTabProps) =>{
                       />
                     }
                     >
+                      <div className="flex flex-col gap-2">
                       {
                         data?.map((session:Session)=>{
                           return (
@@ -440,6 +373,7 @@ const SessionsTab = ({groupId, userRole}:SessionsTabProps) =>{
                           )
                         })
                       }
+                      </div>
                     </QueryWrapper>
                   </TabsContent>
                 )
@@ -527,6 +461,28 @@ const MembersTab = ({members, groupId}:MembersTabProps) => {
     </div>
   )
 }
+
+const ChatTab = ({groupId}:ChatTabProps) => {
+
+
+  return (
+      <Card variant="elevated" className="h-[900px] flex flex-col">
+        <CardHeader className="border-b border-border py-4">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-primary" />
+            Group Chat
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent className=" overflow-y-auto p-4 space-y-4 h-full">
+          <ChatBox
+          groupId={groupId}
+          />
+        </CardContent>
+      </Card>
+  )
+}
+
 
 const AttendanceHistoryTab = ({groupId, maxMembers}:AttendanceHistoryProps) => {
 

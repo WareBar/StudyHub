@@ -28,6 +28,7 @@ import { useState } from "react";
 
 export default function DashboardPage() {
   const [showCreateGroupDialog, setShowCreateGroupDialog] = useState<boolean>(false)
+  const {user} = useAuth()
 
   return (
     <Layout isAuthenticated>
@@ -36,14 +37,14 @@ export default function DashboardPage() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold">Welcome back, John! 👋</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">Welcome back, {user?.username}! 👋</h1>
               <p className="text-muted-foreground mt-1">
                 You have 2 study sessions scheduled today
               </p>
             </div>
             <div className="flex gap-3">
               <Button variant="outline">
-                <Link to="/groups">
+                <Link to="/groups" className="flex h-full w-full items-center">
                   <Users className="h-4 w-4 mr-2" />
                   Find Groups
                 </Link>
