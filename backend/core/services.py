@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from supabase import create_client
-from rest_framework.exceptions import ValidationError
+import time
 load_dotenv()
 
 # Get values
@@ -56,15 +56,26 @@ class CoreService:
             
     @staticmethod
     def upload_file(file):
-        """Uploads a file to Supabase Storage and returns its public URL."""
+        """
+        Uploads a file to Supabase Storage and returns its public URL.
+        
+        And formats file name to include the timestamp to avoid duplicate resource error from supabase
+        
+        """
         CoreService._verify_file_size(file)
 
 
         folder_name = "studyhub/uploads"
 
+        # format file name with timestamp to avoid duplicate resource error from supabase
+        base_name = file.name
+        name, ext = base_name.rsplit('.', 1)  # split into name and extension
+        timestamp = int(time.time() * 1000)
+        file_name = f"{folder_name}/{name}_{timestamp}.{ext}"
+
         try:
             data = file.read()  # works for both InMemoryUploadedFile and TemporaryUploadedFile
-            supabase.storage.from_(SUPABASE_BUCKET).upload(f"{folder_name}/{file.name}", data)
+            supabase.storage.from_(SUPABASE_BUCKET).upload({file_name}, data)
         except FileNotFoundError:
             raise ValueError({
                 "code":"FILE_NOT_FOUND",

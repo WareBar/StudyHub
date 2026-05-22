@@ -169,3 +169,30 @@ class Attendance(BaseModel):
 
 
 
+class Resource(BaseModel):
+    class ResourceType(models.TextChoices):
+        FILE = "file"
+        LINK = "link"
+        # Will be adding more here        
+
+    name = models.CharField(
+        max_length=100, null=False, blank=False
+    )
+    description = models.CharField(
+        max_length=300, null=True, blank=True
+    )
+    url = models.URLField(
+        null=False, blank=False, default="/"
+    )
+    resource_type = models.CharField(
+        max_length=10, null=False, blank=False, default=ResourceType.LINK
+    )
+    group = models.ForeignKey(
+        StudyGroup, on_delete=models.DO_NOTHING, null=False, blank=False
+    )
+    uploader = models.ForeignKey(
+        User, on_delete=models.DO_NOTHING, null=False, blank=False   
+    )
+
+    def __str__(self):
+        return f"{self.uploader.email}'s {self.name}"

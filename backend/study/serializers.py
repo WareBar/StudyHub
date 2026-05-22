@@ -10,7 +10,8 @@ from study.models import (
     Subject,
     MemberShip,
     Session,
-    Attendance
+    Attendance,
+    Resource
 )
 from User.simple_serializers import SimpleUserSerializer
 from User.models import User
@@ -155,5 +156,18 @@ class AttendanceSerializer(ModelSerializer):
         model  = Attendance
         fields = "__all__"
 
+
+class ResourceSerializer(ModelSerializer):
+    group_detail   = StudyGroupSerializer(source="group", read_only=True)
+    uploader_detail    = SimpleUserSerializer(source="uploader", read_only=True)
+    group   = serializers.PrimaryKeyRelatedField(queryset=StudyGroup.objects.all(), write_only=True)
+    uploader    = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), write_only=True)
+
+
+    class Meta:
+        model = Resource
+        fields = "__all__"
+        read_only_fields = ["url"] # frontend doesn't send it, backend sets it
+        
 
 

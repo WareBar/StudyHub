@@ -4,7 +4,7 @@ from study.models import (
     Subject,
     MemberShip,
     Session,
-    Attendance
+    Attendance, Resource
 )
 from User.models import User
 from django.shortcuts import get_object_or_404
@@ -17,6 +17,10 @@ from django.db.models.functions import TruncDate, JSONObject
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.utils.timezone import now
 from django.utils import timezone
+
+
+from core.services import CoreService
+
 class BaseService:
     @staticmethod
     def get_membership(group=None, user=None, group_id=None, user_id=None):
@@ -501,6 +505,10 @@ class SessionService(BaseService):
         instance.save()
         return instance
 
+
+
+
+
 class AttendanceService(BaseService):
     @staticmethod
     @transaction.atomic
@@ -542,3 +550,50 @@ class AttendanceService(BaseService):
         return {"message":"Ok"}
 
 
+
+
+class ResourceService(BaseService):
+
+
+    @staticmethod
+    def _create_resource(data, file):
+        # unlike other thing, we dont need to use get_group_and_user since in the views, we passed the validated data, so the data has now object or created/filled the object from ids
+        ResourceService.require_active_membership(group=data['group'], user=data['uploader'])
+
+
+        if data['resource_type'] == Resource.ResourceType.LINK:
+            url = data["url"]
+        elif data['resource_type'] == Resource.ResourceType.FILE:
+            # upload file into the supbase and get the public url 
+            url = CoreService.upload_file(file)['url']
+
+        return Resource.objects.create(
+            **data,
+            url=url
+        )
+    
+    @staticmethod
+    def _update_resource(instance, actor_id, data, file):
+        # unlike other thing, we dont need to use get_group_and_user since in the views, we passed the validated data, so the data has now object or created/filled the object from ids
+        ResourceService.require_active_membership(group=instance.group, user=instance.uploader)
+        # only uploader can update their own resources
+        if instance.uploader.id != actor_id:
+            raise PermissionDenied({
+                "code": "INVALID_ACTION",
+                "detail": "Only the uploader can update their uploaded resource."
+            })
+
+
+        # replacees/updates attrs with new data passed
+        for attr, value in data.items():
+            setattr(instance, attr, value)
+
+        # handle url separately based on resource_type
+        resource_type = data.get('resource_type', instance.resource_type)
+        if resource_type == Resource.ResourceType.FILE and file:
+            instance.url = CoreService.upload_file(file)['url']
+        elif resource_type == Resource.ResourceType.LINK:
+            instance.url = data.get('url', instance.url)
+
+        instance.save()
+        return instance

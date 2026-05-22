@@ -5,7 +5,7 @@ from study.views import (
     SubjectViewset,
     MemberShipViewset,
     SessionViewset,
-    AttendanceViewset
+    AttendanceViewset, ResourceViewset
 )
 
 router = DefaultRouter()
@@ -14,6 +14,7 @@ router.register("subject",SubjectViewset, basename="subject")
 router.register("membership",MemberShipViewset, basename="membership")
 router.register("session",SessionViewset, basename="session")
 router.register("attendance",AttendanceViewset, basename="attendance")
+router.register("resource",ResourceViewset, basename="resource")
 
 urlpatterns = [
     path("",include(router.urls)),
