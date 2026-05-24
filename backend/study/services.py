@@ -4,7 +4,7 @@ from study.models import (
     Subject,
     MemberShip,
     Session,
-    Attendance, Resource
+    Attendance, Resource, ResourceDownload, ResourceViews
 )
 from User.models import User
 from django.shortcuts import get_object_or_404
@@ -17,7 +17,7 @@ from django.db.models.functions import TruncDate, JSONObject
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.utils.timezone import now
 from django.utils import timezone
-
+from django.db.models import F
 
 from core.services import CoreService
 
@@ -597,3 +597,47 @@ class ResourceService(BaseService):
 
         instance.save()
         return instance
+    
+    # get the group and the user
+    # the id is already passed anyway
+    # then record it
+    @staticmethod
+    def _record_download(resource_id:int, group_id:int, user_id:int):
+
+        resource_download_instance, created = ResourceDownload.objects.get_or_create(
+            resource_id=resource_id,
+            group_id=group_id,
+            user_id=user_id,
+            defaults={'count': 1}  # start at 1 on creation
+        )
+
+        # always use F for updating to avoid race condition
+        # This sends a single atomic SQL statement:
+        if not created:
+            ResourceDownload.objects.filter(pk=resource_download_instance.pk).update(count=F('count') + 1)
+
+        return {
+            "success":True,
+            "message":"Download Recorded"
+        }
+
+    @staticmethod
+    def _record_views(resource_id:int, group_id:int, user_id:int):
+
+        resource_views_instance, created = ResourceViews.objects.get_or_create(
+            resource_id=resource_id,
+            group_id=group_id,
+            user_id=user_id,
+            defaults={'count': 1}  # start at 1 on creation
+        )
+
+        # always use F for updating to avoid race condition
+        # This sends a single atomic SQL statement:
+        if not created:
+            ResourceViews.objects.filter(pk=resource_views_instance.pk).update(count=F('count') + 1)
+
+        return {
+            "success":True,
+            "message":"Views Recorded"
+        }
+

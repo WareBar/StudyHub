@@ -24,7 +24,6 @@ from core.mixins import GroupRBACMixin, SearchMixin, UserRelatedMixin
 from core.pagination import CustomPagination
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import PermissionDenied
 # services
 from study.services import (
     StudyGroupService,
@@ -65,8 +64,8 @@ class StudyGroupViewset(GroupRBACMixin, UserRelatedMixin,SearchMixin, ModelViewS
     @action(detail=True, methods=["get"],permission_classes=[IsAuthenticated])
     def sessions_list(self, request, pk=None):
         group = self.get_object()
-        status = request.query_params.get("status", None)
-        result = StudyGroupService.sessions_list(group_id=group.id, user_id=request.user.id, status=status)
+        session_status = request.query_params.get("status", None)
+        result = StudyGroupService.sessions_list(group_id=group.id, user_id=request.user.id, status=session_status)
         serializer = SessionSerializer(result, many=True)
         return Response(serializer.data)
 
@@ -260,3 +259,30 @@ class ResourceViewset(UserRelatedMixin, ModelViewSet):
         user = self.request.user
         instance = ResourceService._update_resource(self.get_object(),user.id,serializer.validated_data, file)
         serializer.instance = instance
+
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def record_download(self, request, pk=None):
+        data = require_params(request.data, "group_id")
+        group_id = data["group_id"]
+        user_id =  request.user.id
+        result = ResourceService._record_download(
+            resource_id=pk,
+            group_id=group_id,
+            user_id=user_id
+        )
+        return Response(result)
+    
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def record_view(self, request, pk=None):
+        data = require_params(request.data, "group_id")
+        group_id = data["group_id"]
+        user_id =  request.user.id
+        result = ResourceService._record_views(
+            resource_id=pk,
+            group_id=group_id,
+            user_id=user_id
+        )
+        return Response(result)
+    

@@ -168,7 +168,6 @@ class Attendance(BaseModel):
         return f"{self.user.username}'s attendance on {self.group.name}"
 
 
-
 class Resource(BaseModel):
     class ResourceType(models.TextChoices):
         FILE = "file"
@@ -196,3 +195,40 @@ class Resource(BaseModel):
 
     def __str__(self):
         return f"{self.uploader.email}'s {self.name}"
+
+
+
+# For analytical purposes
+class ResourceDownload(BaseModel):
+    """To track the user that downloaded the resource and how many times"""
+    resource = models.ForeignKey(
+        Resource,
+        on_delete=models.CASCADE,
+        null=False, blank=False
+        )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.DO_NOTHING,
+        null=False, blank=False
+    )
+    count = models.PositiveIntegerField(
+        default=0
+    )
+
+# For analytical purposes
+
+class ResourceViews(BaseModel):
+    """To track the user that views the resource and how many times"""
+    resource = models.ForeignKey(
+        Resource,
+        on_delete=models.CASCADE,
+        null=False, blank=False
+        )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.DO_NOTHING,
+        null=False, blank=False
+    )
+    count = models.PositiveIntegerField(
+        default=0
+    )
