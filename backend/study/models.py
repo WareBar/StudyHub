@@ -206,6 +206,11 @@ class ResourceDownload(BaseModel):
         on_delete=models.CASCADE,
         null=False, blank=False
         )
+    group = models.ForeignKey(
+        StudyGroup, on_delete=models.DO_NOTHING, null=False, blank=False,
+        default=''
+
+    )
     user = models.ForeignKey(
         User,
         on_delete=models.DO_NOTHING,
@@ -214,6 +219,8 @@ class ResourceDownload(BaseModel):
     count = models.PositiveIntegerField(
         default=0
     )
+    class Meta:
+        unique_together = ('resource', 'group', 'user')
 
 # For analytical purposes
 
@@ -224,6 +231,10 @@ class ResourceViews(BaseModel):
         on_delete=models.CASCADE,
         null=False, blank=False
         )
+    group = models.ForeignKey(
+        StudyGroup, on_delete=models.DO_NOTHING, null=False, blank=False,
+        default=''
+    )
     user = models.ForeignKey(
         User,
         on_delete=models.DO_NOTHING,
@@ -232,3 +243,6 @@ class ResourceViews(BaseModel):
     count = models.PositiveIntegerField(
         default=0
     )
+
+    class Meta:
+        unique_together = ('resource', 'group', 'user')
