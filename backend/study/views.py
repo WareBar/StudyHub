@@ -4,7 +4,7 @@ from study.models import (
     Subject,
     MemberShip,
     Session,
-    Attendance
+    Attendance, Resource, ResourceViews, ResourceDownload
 )
 
 from study.serializers import (
@@ -12,7 +12,7 @@ from study.serializers import (
     SubjectSerializer,
     MemberShipSerializer,
     SessionSerializer,
-    AttendanceSerializer
+    AttendanceSerializer, ResourceSerializer, ResourceViewsSerializer, ResourceDownloadSerializer
 )
 from django.db.models import Count, Q
 from rest_framework.exceptions import ValidationError, PermissionDenied
@@ -24,13 +24,14 @@ from core.mixins import GroupRBACMixin, SearchMixin, UserRelatedMixin
 from core.pagination import CustomPagination
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import PermissionDenied
 # services
 from study.services import (
     StudyGroupService,
     SessionService,
-    AttendanceService, MembershipService
+    AttendanceService, MembershipService, ResourceService
 )
+
+
 
 # validators
 from core.validators import require_params
@@ -65,8 +66,8 @@ class StudyGroupViewset(GroupRBACMixin, UserRelatedMixin,SearchMixin, ModelViewS
     @action(detail=True, methods=["get"],permission_classes=[IsAuthenticated])
     def sessions_list(self, request, pk=None):
         group = self.get_object()
-        status = request.query_params.get("status", None)
-        result = StudyGroupService.sessions_list(group_id=group.id, user_id=request.user.id, status=status)
+        session_status = request.query_params.get("status", None)
+        result = StudyGroupService.sessions_list(group_id=group.id, user_id=request.user.id, status=session_status)
         serializer = SessionSerializer(result, many=True)
         return Response(serializer.data)
 
@@ -107,6 +108,7 @@ class SubjectViewset(SearchMixin, ModelViewSet):
     pagination_class = CustomPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['name']
+
 
 class MemberShipViewset(GroupRBACMixin, SearchMixin, ModelViewSet):
     queryset = MemberShip.objects.select_related('group','user').all()
@@ -235,3 +237,66 @@ class AttendanceViewset(GroupRBACMixin, UserRelatedMixin, ModelViewSet):
         session_id = data["session_id"]
         result = AttendanceService.heartbeat(session_id, request.user)
         return Response(result)
+    
+
+
+class ResourceViewset(UserRelatedMixin, SearchMixin, ModelViewSet):
+    queryset = Resource.objects.select_related("uploader","group").all()
+    serializer_class = ResourceSerializer
+    pagination_class = CustomPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['group', 'uploader', 'resource_type']
+    search_fields = ["name","url"]
+    user_lookup_field = "uploader"
+
+    def perform_create(self, serializer):
+        file = self.request.FILES.get("file")
+        instance = ResourceService._create_resource(serializer.validated_data, file)
+        serializer.instance = instance
+
+
+
+    def perform_update(self, serializer):
+        file = self.request.FILES.get("file")
+        user = self.request.user
+        instance = ResourceService._update_resource(self.get_object(),user.id,serializer.validated_data, file)
+        serializer.instance = instance
+
+
+    # returns the views and download
+    @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated])
+    def views(self, request, pk=None):
+        return Response('wow')
+
+
+    @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated])
+    def downloads(self, request, pk=None):
+        return Response('wow')
+
+
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def record_download(self, request, pk=None):
+        data = require_params(request.data, "group_id")
+        group_id = data["group_id"]
+        user_id =  request.user.id
+        result = ResourceService._record_download(
+            resource_id=pk,
+            group_id=group_id,
+            user_id=user_id
+        )
+        return Response(result)
+    
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def record_view(self, request, pk=None):
+        data = require_params(request.data, "group_id")
+        group_id = data["group_id"]
+        user_id =  request.user.id
+        result = ResourceService._record_views(
+            resource_id=pk,
+            group_id=group_id,
+            user_id=user_id
+        )
+        return Response(result)
+

@@ -10,7 +10,8 @@ from study.models import (
     Subject,
     MemberShip,
     Session,
-    Attendance
+    Attendance,
+    Resource, ResourceDownload, ResourceViews
 )
 from User.simple_serializers import SimpleUserSerializer
 from User.models import User
@@ -143,7 +144,7 @@ class SessionSerializer(ModelSerializer):
         fields = "__all__"
 
 class AttendanceSerializer(ModelSerializer):
-    group_detail   = StudyGroupSerializer(source="group", read_only=True)
+    group_detail   = StudyGroupSimpleSerializer(source="group", read_only=True)
     user_detail    = SimpleUserSerializer(source="user", read_only=True)
     session_detail = SessionSerializer(source="session", read_only=True)
 
@@ -155,5 +156,49 @@ class AttendanceSerializer(ModelSerializer):
         model  = Attendance
         fields = "__all__"
 
+
+class ResourceSerializer(ModelSerializer):
+    group_detail   = StudyGroupSerializer(source="group", read_only=True)
+    uploader_detail    = SimpleUserSerializer(source="uploader", read_only=True)
+    group   = serializers.PrimaryKeyRelatedField(queryset=StudyGroup.objects.all(), write_only=True)
+    uploader    = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), write_only=True)
+
+
+    class Meta:
+        model = Resource
+        fields = "__all__"
+        # read_only_fields = ["url"] # frontend doesn't send it, backend sets it, it strips url fields when making changes, only visible when get requyest
+        
+
+
+class ResourceDownloadSerializer(ModelSerializer):
+    user_detail    = SimpleUserSerializer(source="user", read_only=True)
+    resource_detail = ResourceSerializer(source="resource", read_only=True)
+    group_detail = StudyGroupSimpleSerializer(source="group", read_only=True)
+
+    user    = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), write_only=True)
+    resource    = serializers.PrimaryKeyRelatedField(queryset=Resource.objects.all(), write_only=True)
+    group    = serializers.PrimaryKeyRelatedField(queryset=StudyGroup.objects.all(), write_only=True)
+
+
+    class Meta:
+        model = ResourceDownload
+        fields = "__all__"
+    
+
+
+class ResourceViewsSerializer(ModelSerializer):
+    user_detail    = SimpleUserSerializer(source="user", read_only=True)
+    resource_detail = ResourceSerializer(source="resource", read_only=True)
+    group_detail = StudyGroupSimpleSerializer(source="group", read_only=True)
+
+    user    = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), write_only=True)
+    resource    = serializers.PrimaryKeyRelatedField(queryset=Resource.objects.all(), write_only=True)
+    group    = serializers.PrimaryKeyRelatedField(queryset=StudyGroup.objects.all(), write_only=True)
+
+    class Meta:
+        model = ResourceViews
+        fields = "__all__"
+    
 
 

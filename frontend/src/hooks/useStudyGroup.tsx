@@ -164,6 +164,7 @@ export function useStudyGroup(studyGroupID?:number, onSuccessCallback?:()=>void)
 
     return {
         studyGroup: data,
+        isFetching: isFetching,
         isMutating: mutation.isPending,
         isDeleting: mutation.isPending,
         mutate: mutation.mutate,

@@ -19,6 +19,11 @@ from celery.schedules import crontab
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+load_dotenv()
+
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -67,6 +72,7 @@ SITE_ID = 1
 
 
 MIDDLEWARE = [
+    'core.middleware.FileSizeLimitMiddleware',
     "corsheaders.middleware.CorsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     'django.middleware.security.SecurityMiddleware',
@@ -212,3 +218,7 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 CELERY_TIMEZONE = 'UTC'
+
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 52428800   # 50 MB — rejects in-memory files early
+FILE_UPLOAD_MAX_MEMORY_SIZE = 52428800   # 50 MB — controls memory/disk threshold

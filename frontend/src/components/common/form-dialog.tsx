@@ -8,10 +8,7 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog"
 
 import {
@@ -25,14 +22,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
+import {
+  BookOpen,
+  Calendar,
+  Settings,
+  Users,
+  FileText,
+  Star,
+} from "lucide-react"
+
 /* -------------------------------------------------------
    Types
 ------------------------------------------------------- */
 
-/**
- * Actions exposed to the footer renderer.
- * Parent decides which buttons to show based on isEditing.
- */
 type DialogFooterActions = {
   requestEdit: () => void
   requestSave: () => void
@@ -41,31 +43,28 @@ type DialogFooterActions = {
   isEditing: boolean
 }
 
-/** Types of confirmation dialogs */
 type ConfirmType = "save" | "cancel" | "delete"
 
-/** Configuration for confirmation dialogs */
 interface ConfirmConfig {
   enabled?: boolean
   title?: string
   description?: string
 }
 
-/** Dialog width presets */
 type DialogWidth = "sm" | "md" | "lg"
 
-/**
- * Controlled form dialog props.
- * Editing state is handled internally.
- */
-interface FormDialogControlledProps<
-  T extends Element = HTMLFormElement
-> {
+/** Icon key mapped to a lucide icon — extend as needed */
+type DialogIconKey = "book" | "calendar" | "settings" | "users" | "file" | "star"
+
+interface FormDialogControlledProps<T extends Element = HTMLFormElement> {
   open: boolean
   onOpenChange: (open: boolean) => void
 
   title: string
   description?: string
+
+  /** Optional icon shown in the header strip. Defaults to "book". */
+  icon?: DialogIconKey
 
   onSubmit: (e: FormEvent<T>) => void
   onDelete?: () => void
@@ -85,16 +84,26 @@ interface FormDialogControlledProps<
 }
 
 /* -------------------------------------------------------
+   Icon map
+------------------------------------------------------- */
+const ICON_MAP: Record<DialogIconKey, React.ElementType> = {
+  book: BookOpen,
+  calendar: Calendar,
+  settings: Settings,
+  users: Users,
+  file: FileText,
+  star: Star,
+}
+
+/* -------------------------------------------------------
    Component
 ------------------------------------------------------- */
-
-export const FormDialogControlled = <
-  T extends Element = HTMLFormElement
->({
+export const FormDialogControlled = <T extends Element = HTMLFormElement>({
   open,
   onOpenChange,
   title,
   description,
+  icon = "book",
   onSubmit,
   onDelete,
   onCancel,
@@ -103,8 +112,6 @@ export const FormDialogControlled = <
   footer,
   className,
   width = "sm",
-
-  // EXTERNAL editing state
   externalIsEditing,
   setExternalIsEditing,
 }: FormDialogControlledProps<T> & {
@@ -121,7 +128,7 @@ export const FormDialogControlled = <
   const stopEdit = () => setIsEditing(false)
 
   const handleOpenChange = (value: boolean) => {
-    if (!value) setConfirmType(null) // reset confirm
+    if (!value) setConfirmType(null)
     onOpenChange(value)
   }
 
@@ -146,32 +153,42 @@ export const FormDialogControlled = <
 
   const handleConfirm = () => {
     if (confirmType === "save") performSubmit()
-    if (confirmType === "delete") {
-      onDelete?.()
-      closeConfirm()
-    }
-    if (confirmType === "cancel") {
-      onCancel?.()
-      stopEdit() // now stopEdit only happens after confirming cancel
-      closeConfirm()
-    }
+    if (confirmType === "delete") { onDelete?.(); closeConfirm() }
+    if (confirmType === "cancel") { onCancel?.(); stopEdit(); closeConfirm() }
   }
 
   const widthClass =
-    width === "sm"
-      ? "sm:max-w-lg"
-      : width === "md"
-      ? "sm:max-w-xl"
-      : "sm:max-w-2xl"
+    width === "sm" ? "sm:max-w-lg"
+    : width === "md" ? "sm:max-w-xl"
+    : "sm:max-w-2xl"
+
+  const Icon = ICON_MAP[icon]
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className={`${widthClass} ${className ?? ""}`}>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
-        </DialogHeader>
+      <DialogContent className={`${widthClass} ${className ?? ""} p-0 gap-0 overflow-hidden rounded-2xl`}>
 
+        {/* ── Compact branded header strip ── */}
+        <div className="relative bg-orange-500 px-6 py-4 overflow-hidden flex items-center gap-3.5">
+          {/* decorative blobs */}
+          <div className="absolute -top-5 -right-5 w-20 h-20 bg-white/10 rounded-full pointer-events-none" />
+          <div className="absolute -bottom-4 left-1/2 w-14 h-14 bg-white/10 rounded-full pointer-events-none" />
+
+          {/* icon badge */}
+          <div className="relative z-10 w-9 h-9 bg-white/20 border border-white/30 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Icon className="h-4.5 w-4.5 text-white h-[18px] w-[18px]" />
+          </div>
+
+          {/* text */}
+          <div className="relative z-10 min-w-0">
+            <h2 className="text-white font-semibold text-sm leading-tight truncate">{title}</h2>
+            {description && (
+              <p className="text-orange-100 text-xs mt-0.5 truncate">{description}</p>
+            )}
+          </div>
+        </div>
+
+        {/* ── Form body ── */}
         <form
           ref={formRef}
           onSubmit={(e) => {
@@ -180,162 +197,67 @@ export const FormDialogControlled = <
             if (!validateForm()) return
             confirm?.save?.enabled ? openConfirm("save") : performSubmit()
           }}
-          className="space-y-4"
+          className="flex flex-col"
         >
-          {children}
+          {/* scrollable content area */}
+          <div className="px-6 py-5 space-y-4 overflow-y-auto max-h-[65vh]">
+            {children}
+          </div>
 
-          <DialogFooter>
-            {footer({
-              requestEdit: startEdit,
-              requestSave: () => {
-                if (!isEditing) return
-                if (!validateForm()) return
-                confirm?.save?.enabled ? openConfirm("save") : performSubmit()
-              },
-              requestCancel: () => {
-                if (!isEditing) return
-                if (confirm?.cancel?.enabled) openConfirm("cancel")
-                else stopEdit()
-              },
-              requestDelete: () => openConfirm("delete"),
-              isEditing,
-            })}
-          </DialogFooter>
+          {/* sticky footer */}
+          <div className="px-6 py-4 border-t border-gray-100 bg-white">
+            <DialogFooter>
+              {footer({
+                requestEdit: startEdit,
+                requestSave: () => {
+                  if (!isEditing) return
+                  if (!validateForm()) return
+                  confirm?.save?.enabled ? openConfirm("save") : performSubmit()
+                },
+                requestCancel: () => {
+                  if (!isEditing) return
+                  if (confirm?.cancel?.enabled) openConfirm("cancel")
+                  else stopEdit()
+                },
+                requestDelete: () => openConfirm("delete"),
+                isEditing,
+              })}
+            </DialogFooter>
+          </div>
         </form>
+
       </DialogContent>
 
       {/* Confirmation dialog */}
       <AlertDialog open={!!confirmType} onOpenChange={closeConfirm}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>
+            <AlertDialogTitle className="text-gray-900">
               {confirmType && confirm?.[confirmType]?.title}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirmType && confirm?.[confirmType]?.description}
             </AlertDialogDescription>
           </AlertDialogHeader>
-
           <AlertDialogFooter>
-            {/* just closes the AlertDialog */}
-            <AlertDialogCancel onClick={closeConfirm}>Cancel</AlertDialogCancel>
-            
-            {/* confirms the action */}
-            <AlertDialogAction onClick={handleConfirm}>
-              {confirmType === "save"
-                ? "Continue"
-                : confirmType === "cancel"
-                ? "Discard"
-                : confirmType === "delete"
-                ? "Delete"
+            <AlertDialogCancel
+              onClick={closeConfirm}
+              className="rounded-xl border-gray-200 text-gray-600"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirm}
+              className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              {confirmType === "save" ? "Continue"
+                : confirmType === "cancel" ? "Discard"
+                : confirmType === "delete" ? "Delete"
                 : ""}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
     </Dialog>
   )
 }
-
-
-
-// USAGE EXAMPLE
-// function ProfileDialogExample() {
-//   const [open, setOpen] = useState(false)
-//   const [isEditing, setIsEditing] = useState(false)
-
-//   const handleSubmit = () => {
-//     console.log("Saving data...")
-//   }
-
-//   const handleDelete = () => {
-//     console.log("Deleting record...")
-//   }
-
-//   const handleCancel = () => {
-//     console.log("Cancelled editing")
-//   }
-
-//   return (
-//     <>
-//       <button onClick={() => setOpen(true)}>Open Profile</button>
-
-//       <FormDialogControlled
-//         open={open}
-//         onOpenChange={setOpen}
-//         title="Profile"
-//         description="Manage your profile information"
-
-//         onSubmit={handleSubmit}
-//         onDelete={handleDelete}
-//         onCancel={handleCancel}
-
-//         externalIsEditing={isEditing}
-//         setExternalIsEditing={setIsEditing}
-
-//         confirm={{
-//           save: {
-//             enabled: true,
-//             title: "Save changes?",
-//             description: "Your profile changes will be saved."
-//           },
-//           cancel: {
-//             enabled: true,
-//             title: "Discard changes?",
-//             description: "All unsaved changes will be lost."
-//           },
-//           delete: {
-//             enabled: true,
-//             title: "Delete profile?",
-//             description: "This action cannot be undone."
-//           }
-//         }}
-
-//         footer={({ requestEdit, requestSave, requestCancel, requestDelete, isEditing }) => (
-//           <>
-//             {!isEditing && (
-//               <>
-//                 <button type="button" onClick={requestEdit}>
-//                   Edit
-//                 </button>
-
-//                 <button type="button" onClick={requestDelete}>
-//                   Delete
-//                 </button>
-//               </>
-//             )}
-
-//             {isEditing && (
-//               <>
-//                 <button type="button" onClick={requestCancel}>
-//                   Cancel
-//                 </button>
-
-//                 <button type="button" onClick={requestSave}>
-//                   Save
-//                 </button>
-//               </>
-//             )}
-//           </>
-//         )}
-//       >
-//         {/* FORM CONTENT */}
-//         <input
-//           name="name"
-//           placeholder="Name"
-//           required
-//           className="border p-2 w-full"
-//         />
-
-//         <input
-//           name="email"
-//           placeholder="Email"
-//           type="email"
-//           required
-//           className="border p-2 w-full"
-//         />
-//       </FormDialogControlled>
-//     </>
-//   )
-// }

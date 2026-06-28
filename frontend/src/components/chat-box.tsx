@@ -281,58 +281,40 @@ export const ChatBox = ({ groupId, sessionId }: ChatBoxProps) => {
         </div>
       )}
 
-      {/* input */}
-      <div className="">
-
-        {/* then display the attachments here */}
-        {attachments && attachments.length > 0 && (
-          <div className="h-20 border-t p-1.5 flex flex-row gap-2">
-            {attachments.map(attachment => (
-              <div className="h-full w-20 rounded-sm overflow-hidden border border-muted-foreground relative">
-                <img
-                className="h-full w-full object-center"
-                src={attachment} alt="" />
-                {/* then x */}
-                <Button
-                variant={'outline'}
-                size={'icon-sm'}
-                className="absolute top-0 right-0 bg-black text-white"
-                onClick={()=>handleRemoveAttachment(attachment)}
-                >
-                  <X/>
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-
-
-        <div className="flex gap-2 p-2 border-t">
-          <Button variant="ghost" size="icon" className="w-9 h-9 rounded-xl shrink-0"
-          onClick={()=>{
-            setShowGifPicker(false)
-            setShowEmojiPicker(!showEmojiPicker)
+      {/* input row */}
+      <div className="flex gap-1.5 p-2 border-t items-end">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="w-9 h-9 rounded-xl shrink-0"
+          onClick={() => {
+            setShowGifPicker(false);
+            setShowEmojiPicker((prev) => !prev);
           }}
-          ><Smile className="w-4 h-4" /></Button>
-          <Button variant="ghost" size="icon" className="w-9 h-9 rounded-xl shrink-0"
-          onClick={()=>{
-            setShowEmojiPicker(false)
-            setShowGifPicker(!showGifPicker)
+        >
+          <Smile className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="w-9 h-9 rounded-xl shrink-0"
+          onClick={() => {
+            setShowEmojiPicker(false);
+            setShowGifPicker((prev) => !prev);
           }}
-          ><IconGif className="w-4 h-4" /></Button>
-          <Input
-            placeholder="Type a message..."
-            className="flex-1"
-            value={text}
-            onChange={(e) => handleMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          <Button onClick={handleSend} disabled={!text.trim()}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-
-
+        >
+          <IconGif className="w-4 h-4" />
+        </Button>
+        <Input
+          placeholder="Type a message..."
+          className="flex-1"
+          value={text}
+          onChange={(e) => handleMessage(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+        <Button onClick={handleSend} disabled={!text.trim() && attachments.length === 0} size="icon" className="shrink-0">
+          <Send className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );
@@ -344,15 +326,17 @@ const ChatItem = ({ msg, isOwn, onReply }: ChatItemProps) => {
     ? msg.reply_to.sender as Sender
     : null;
 
-  const [showViewAttachment, setShowViewAttachment] = useState<boolean>(false)
+  const [showViewAttachment, setShowViewAttachment] = useState<boolean>(false);
 
-  const attachmentsArray = msg?.attachments?.replace(/[[\]]/g, "").split(",").map((url) => url.trim())
+  const attachmentsArray = msg?.attachments?.replace(/[[\]]/g, "").split(",").map((url) => url.trim()).filter(Boolean) ?? [];
 
-  const mediaAttachments = attachmentsArray?.filter(url => MEDIA_EXTENSIONS.includes(getExtension(url)))
-  const genericAttachments = attachmentsArray?.filter(url => !MEDIA_EXTENSIONS.includes(getExtension(url)))
+  const mediaAttachments = attachmentsArray.filter(url => MEDIA_EXTENSIONS.includes(getExtension(url)));
+  const genericAttachments = attachmentsArray.filter(url => !MEDIA_EXTENSIONS.includes(getExtension(url)));
+
+  const urls = parseAttachmentUrls(mediaAttachments);
 
   return (
-    <div className={`flex flex-col max-w-[70%] gap-0.5 ${isOwn ? "self-end items-end" : "self-start items-start"}`}>
+    <div className={`flex flex-col max-w-[75%] sm:max-w-[65%] gap-1 ${isOwn ? "self-end items-end" : "self-start items-start"}`}>
       {!isOwn && sender && (
         <span className="text-xs text-muted-foreground px-1">
           {sender.first_name} {sender.last_name}
@@ -360,7 +344,7 @@ const ChatItem = ({ msg, isOwn, onReply }: ChatItemProps) => {
       )}
 
       {msg.reply_to && (
-        <div className="text-xs bg-muted px-2 py-1 rounded border-l-2 text-muted-foreground max-w-full truncate">
+        <div className="text-xs bg-muted px-2 py-1 rounded border-l-2 border-primary text-muted-foreground max-w-full truncate w-full">
           <span className="font-medium">
             {replySender ? `${replySender.first_name} ${replySender.last_name}` : "Unknown"}
           </span>
@@ -368,79 +352,76 @@ const ChatItem = ({ msg, isOwn, onReply }: ChatItemProps) => {
         </div>
       )}
 
-      <div className={`px-3 py-2 rounded-lg text-sm wrap-break-word flex flex-col ${isOwn? 'items-end':'items-start'}`}>
+      <div className={`flex flex-col gap-1.5 ${isOwn ? "items-end" : "items-start"} w-full`}>
 
-        <p className={`p-2.5 mb-2 rounded-xl bg-primary w-fit${isOwn? ' text-white rounded-br-none': 'text-foreground rounded-bl-none'}`}>{msg.message}</p>
+        {/* message bubble */}
+        {msg.message && (
+          <p
+            className={`px-3 py-2 rounded-xl text-sm wrap-break-word w-fit max-w-full ${
+              isOwn
+                ? "bg-primary text-white rounded-br-sm"
+                : "bg-muted text-foreground rounded-bl-sm"
+            }`}
+          >
+            {msg.message}
+          </p>
+        )}
 
-        {/*attachments */}
-        {msg.attachments && (() => {
-          const urls = parseAttachmentUrls(mediaAttachments?? []);
-          if (!urls.length) return null;
-
-          return (
-            <div className="">
-              {/* media attachments */}
-              <div className={`grid gap-1 ${gridClass[urls.length] ?? gridClass[4]}`} onClick={()=>setShowViewAttachment(true)}>
-                {urls.map((url, index) => (
-                  <div
-                    key={url} // prefer stable key over index
-                    className={`overflow-hidden rounded-lg w-40 h-40${
-                      index === 0 && urls.length > 1
-                        ? "col-span-1 row-span-2"
-                        : "w-full"
-                    }`}
-                  >
-                    <img
-                      className="w-full h-full object-cover object-center"
-                      src={url}
-                      alt={`Attachment ${index + 1}`}
-                      loading="lazy"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  </div>
-                ))}
-
-                {
-                  urls.length > MAX_IMAGES && (
-                    <div className="overflow-hidden rounded-lg w-40 h-40">
-                      <img 
-                      className="w-full h-full object-cover object-center"
-                      src={urls[urls.length]} alt="" />
-                    </div>
-                  )
-                }
+        {/* media attachments */}
+        {urls.length > 0 && (
+          <div
+            className={`grid gap-1 overflow-hidden rounded-xl ${gridClass[urls.length] ?? gridClass[4]} w-64 sm:w-72`}
+            onClick={() => setShowViewAttachment(true)}
+          >
+            {urls.map((url, index) => (
+              <div
+                key={url}
+                className={`overflow-hidden bg-muted ${
+                  index === 0 && urls.length > 1 ? "col-span-1 row-span-2" : ""
+                } ${urls.length === 1 ? "aspect-video" : "aspect-square"}`}
+              >
+                <img
+                  className="w-full h-full object-cover object-center"
+                  src={url}
+                  alt={`Attachment ${index + 1}`}
+                  loading="lazy"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                  }}
+                />
               </div>
+            ))}
 
-              {/* generic attachments */}
-              <div className="mt-2">
-                {
-                  genericAttachments?.map((url) => {
-                    return (
-                      <div
-                      key={url}
-                      className="">
-                        <ReactTinyLink
-                          autoPlay={true}
-                          cardSize="small"
-                          showGraphic={true}
-                          maxLine={2}
-                          minLine={1}
-                          url={url}
-                        />
-                      </div>
-                    )
-                  })
-                }
+            {mediaAttachments.length > MAX_IMAGES && (
+              <div className="overflow-hidden bg-muted aspect-square relative flex items-center justify-center text-white text-sm font-medium">
+                <img
+                  className="w-full h-full object-cover object-center absolute inset-0 brightness-50"
+                  src={urls[urls.length - 1]}
+                  alt=""
+                />
+                <span className="relative z-10">+{mediaAttachments.length - MAX_IMAGES}</span>
               </div>
+            )}
+          </div>
+        )}
 
-            </div>
-          );
-        })()}
-
-
-        {/*  generic links */}
+        {/* generic link attachments */}
+        {genericAttachments.length > 0 && (
+          <div className="flex flex-col gap-2 w-64 sm:w-72">
+            {genericAttachments.map((url) => (
+              <div key={url} className="rounded-lg overflow-hidden border">
+                <ReactTinyLink
+                  autoPlay={true}
+                  cardSize="small"
+                  showGraphic={true}
+                  maxLine={2}
+                  minLine={1}
+                  url={url}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2 px-1">
@@ -451,16 +432,14 @@ const ChatItem = ({ msg, isOwn, onReply }: ChatItemProps) => {
           Reply
         </button>
       </div>
-      {
-        mediaAttachments && (
-          <ViewAttachmentsDialog
+
+      {mediaAttachments.length > 0 && (
+        <ViewAttachmentsDialog
           open={showViewAttachment}
           onOpenChange={setShowViewAttachment}
           attachments={mediaAttachments}
-          
-          />
-        )
-      }
+        />
+      )}
     </div>
   );
 };

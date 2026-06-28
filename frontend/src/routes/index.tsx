@@ -12,6 +12,7 @@ import GroupDetailsPage from "@/pages/GroupsPage/GroupDetailsPage";
 import MyGroupsPage from "@/pages/GroupsPage/MyGroups";
 import { SessionVideoRoom } from "@/pages/hub/session-video-room";
 import { NotFound } from "@/pages/errors/not-found";
+import { ResourceViewer } from "@/components/resource-viewer";
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
@@ -31,10 +32,9 @@ export const router = createBrowserRouter(
         <Route path="/my-groups" element={<MyGroupsPage/>}/>
         <Route path="/groups/:id" element={<GroupDetailsPage />}/>
         <Route path="/groups/:id/session_video_room/:groupId/:sessionId" element={<SessionVideoRoom/>}/>
+        <Route path="/groups/:id/resource/:resourceId/:groupId" element={<ResourceViewer/>}/>
         <Route path="/schedule" element={<SchedulePage />} />
         <Route path="/profile" element={<ProfilePage />} />
-        {/* <Route path="/session_video_room/:groupId/:sessionId" element={<SessionVideoRoom/>}/> */}
-        {/* <Route path="/classroom" element={<ClassroomPage/>}/> */}
       </Route>
 
       <Route path="*" element={<NotFound/>}/>

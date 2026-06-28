@@ -10,14 +10,13 @@ import { SessionCard, type Session } from "@/components/SessionCard";
 import {
   Users,
   Calendar,
-  Clock,
-  Lock,
+  Clock, Settings2, Link2, ArrowRight ,
+  Lock, Search,
   MessageCircle,
   XCircle,
-  UserPlus,
+  UserPlus, ArchiveRestore,
   ArrowLeft,
-  CheckCircle,
-  List, ClipboardList, Paperclip
+  List, ClipboardList, Paperclip, BookOpen, UserCircle, CalendarDays, BookMarked
 } from "lucide-react";
 import api from "@/utils/api";
 import { useQuery } from "@tanstack/react-query";
@@ -28,12 +27,16 @@ import { useStudyGroup } from "@/hooks/useStudyGroup";
 import { useToast } from "@/hooks/useToast";
 import { GroupMembershipsDialog } from "@/components/group-memberships-dialog";
 import { InviteUserDialog } from "@/components/invite-user";
+import { ShareResourceDialog } from "@/components/share-resource-dialog";
 import { getRoleBadge } from "@/components/get-role-badge";
 import { CreateSessionDialog } from "@/components/create-session-dialog";
 import { useAuth } from "@/context/AuthContext";
 import type { StudyGroupProps, MembershipProps, UserProps } from "@/types/models";
 import { capitalize } from "@/utils/word";
 import { ChatBox } from "@/components/chat-box";
+import { Input } from "@/components/ui/input";
+import { motion } from "framer-motion";
+import { ResourceCard } from "@/components/resource-card";
 
 
 interface GroupPageHeaderProps {
@@ -79,6 +82,22 @@ type ChatTabProps = {
 }
 
 
+
+const RESOURCE_TYPE_OPTIONS = [
+  {
+    "name":"all",
+    "icon":null
+  },
+  {
+    "name":"file",
+    "icon":BookOpen
+  },
+  {
+    "name":"link",
+    "icon":Link2
+  },
+]
+
 export default function GroupDetailsPage() {
   const { id } = useParams();
   const { 
@@ -116,6 +135,7 @@ export default function GroupDetailsPage() {
     cancelRequest({
       groupId:Number(id)
     })
+    console.log('request sent')
   }
 
 
@@ -164,7 +184,7 @@ export default function GroupDetailsPage() {
                   <Tabs defaultValue="sessions" className="space-y-6">
                     <TabsList className="bg-muted/50 flex">
                       {
-                        [{'name':"sessions", "icon":List},{"name":"members", "icon":Users},{"name":"chat", "icon":MessageCircle},{"name":"attendance", "icon":ClipboardList},{"name":"resources", "icon":Paperclip}].map((trigger)=>{
+                        [{'name':"sessions", "icon":List},{"name":"members", "icon":Users},{"name":"chat", "icon":MessageCircle},{"name":"attendances", "icon":ClipboardList},{"name":"resources", "icon":Paperclip}].map((trigger)=>{
                           const Icon = trigger.icon
                           return (
                             <TabsTrigger 
@@ -191,11 +211,15 @@ export default function GroupDetailsPage() {
                       />
                     </TabsContent>
 
-                    <TabsContent value="attendance">
+                    <TabsContent value="attendances">
                       <AttendanceHistoryTab
                         groupId={id}
                         maxMembers={10}
                       />
+                    </TabsContent>
+
+                    <TabsContent value="resources">
+                      <ResourcesTab groupId={id}/>
                     </TabsContent>
                   </Tabs>
                 )
@@ -230,59 +254,63 @@ export default function GroupDetailsPage() {
 }
 
 
-const GroupPageHeader = ({detail}:GroupPageHeaderProps) => {
+const GroupPageHeader = ({ detail }: GroupPageHeaderProps) => {
   return (
-          <div className="flex flex-col lg:flex-row gap-6 mb-8">
-            <Card variant="elevated" className="flex-1">
-              <CardContent className="p-6">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <Badge variant="soft">{detail.subject_detail.name}</Badge>
-                    </div>
-                    <h1 className="text-2xl sm:text-3xl font-bold mb-2">{detail.name}</h1>
-                    <p className="text-muted-foreground max-w-2xl">{detail.description}</p>
-                  </div>
-                </div>
+    <div className="mb-8">
+      <div className="bg-white border border-neutral-100 rounded-xl overflow-hidden">
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-border">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-primary" />
-                    <div>
-                      <div className="font-semibold">
-                        {/* {groupData.memberCount}/{groupData.maxMembers} */}
-                        {detail.memberships.length}/{detail.max_members}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Members</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-primary" />
-                    <div>
-                      <div className="font-semibold">{detail.creator_detail.email}</div>
-                      <div className="text-xs text-muted-foreground">Creator</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-primary" />
-                    <div>
-                      <div className="font-semibold">{relativeTime(detail.created_at)}</div>
-                      <div className="text-xs text-muted-foreground">Created</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-success" />
-                    <div>
-                      <div className="font-semibold">{detail.total_sessions}</div>
-                      <div className="text-xs text-muted-foreground">Sessions</div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        {/* Top section */}
+        <div className="px-6 pt-5 pb-5">
+          <div className="inline-flex items-center gap-1.5 text-[11px] font-medium bg-orange-50 text-orange-700 border border-orange-200 rounded-full px-2.5 py-1 mb-3">
+            <BookOpen className="h-3 w-3" />
+            {detail.subject_detail.name}
           </div>
-  )
 
+          <h1 className="text-[22px] font-medium leading-tight mb-1.5">
+            {detail.name}
+          </h1>
+
+          <p className="text-[13px] text-neutral-500 leading-relaxed max-w-2xl">
+            {detail.description}
+          </p>
+
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
+            {/* <span className="inline-flex items-center gap-1 text-[11px] text-neutral-400 bg-neutral-50 border border-neutral-100 rounded-full px-2.5 py-1">
+              <Globe className="h-3 w-3" />
+              {detail.is_private ? "Private group" : "Public group"}
+            </span> */}
+            <span className="inline-flex items-center gap-1 text-[11px] text-neutral-400 bg-neutral-50 border border-neutral-100 rounded-full px-2.5 py-1">
+              <UserCircle className="h-3 w-3" />
+              {detail.creator_detail.email}
+            </span>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-neutral-100" />
+
+        {/* Stats row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4">
+          {[
+            { icon: Users,       value: `${detail.memberships.length} / ${detail.max_members}`, label: "Members"   },
+            { icon: CalendarDays, value: detail.total_sessions,                                  label: "Sessions"  },
+            { icon: BookMarked,  value: detail.total_resources ?? "—",                           label: "Resources" },
+            { icon: Clock,       value: relativeTime(detail.created_at),                         label: "Created"   },
+          ].map(({ icon: Icon, value, label }, i, arr) => (
+            <div
+              key={label}
+              className={`flex flex-col gap-0.5 px-5 py-3.5 ${i < arr.length - 1 ? "border-r border-neutral-100" : ""}`}
+            >
+              <Icon className="h-[15px] w-[15px] text-orange-500 mb-1" />
+              <span className="text-[15px] font-medium truncate">{value}</span>
+              <span className="text-[11px] text-neutral-400">{label}</span>
+            </div>
+          ))}
+        </div>
+
+      </div>
+    </div>
+  )
 }
 
 
@@ -395,72 +423,100 @@ const SessionsTab = ({groupId, userRole}:SessionsTabProps) =>{
 
 
 
-const MembersTab = ({members, groupId}:MembersTabProps) => {
-  const [showMemberManagementDialog, setShowMemberManagementDialog] = useState<boolean>(false)
-  const [showInviteDialog, setShowInviteDialog] = useState<boolean>(false)
-
-
+const MembersTab = ({ members, groupId }: MembersTabProps) => {
+  const [showMemberManagementDialog, setShowMemberManagementDialog] = useState(false);
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+ 
   return (
-    <div className="">
-      <div className="flex items-center justify-between mb-5">
-        <h2 className="text-xl font-semibold">Members {members.length}</h2>
-        <div className="flex gap-3">
-          <Button variant="outline"
-          onClick={()=>setShowInviteDialog(true)}
+    <div>
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 tracking-tight">Members</h2>
+          <p className="text-sm text-gray-400 mt-0.5">
+            {members.length} {members.length === 1 ? "member" : "members"} in this group
+          </p>
+        </div>
+ 
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowInviteDialog(true)}
+            className="border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl text-sm gap-2"
           >
-            <UserPlus className="h-4 w-4 mr-2" />
+            <UserPlus className="h-4 w-4" />
             Invite
           </Button>
-
-          <Button 
-          variant="default"
-          onClick={()=>setShowMemberManagementDialog(true)}
+          <Button
+            onClick={() => setShowMemberManagementDialog(true)}
+            className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm gap-2 shadow-sm shadow-orange-100"
           >
-            <UserPlus className="h-4 w-4 mr-2" />
-            Manage memberships
+            <Settings2 className="h-4 w-4" />
+            Manage
           </Button>
         </div>
       </div>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {members?.map(member => (
-          <Card key={member.id} variant="default">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <Avatar size="lg">
-                  <AvatarImage src={member.user.avatar || ""} alt={member.user.first_name} />
-                  <AvatarFallback>{member.user.first_name}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold truncate">{member.user.username}</span>
-                    {getRoleBadge(member.role)}
-                  </div>
-                  {/* <div className="text-sm text-muted-foreground">
-                    {member.course} • {member.year}
-                  </div> */}
+ 
+      {/* ── Empty state ── */}
+      {members.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mb-4">
+            <Users className="h-6 w-6 text-gray-300" />
+          </div>
+          <p className="text-sm font-medium text-gray-500">No members yet</p>
+          <p className="text-xs text-gray-400 mt-1">Invite someone to get started</p>
+        </div>
+      ) : (
+        /* ── Grid ── */
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {members.map((member, idx) => (
+            <motion.div
+              key={member.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: idx * 0.05 }}
+              className="flex items-center gap-3 bg-white border border-gray-100 rounded-2xl px-4 py-3.5 hover:border-orange-200 hover:shadow-sm transition-all"
+            >
+              <Avatar className="h-10 w-10 flex-shrink-0 ring-2 ring-orange-100">
+                <AvatarImage
+                  src={member.user.avatar || ""}
+                  alt={member.user.first_name}
+                />
+                <AvatarFallback className="bg-orange-50 text-orange-500 text-sm font-semibold">
+                  {member.user.first_name?.[0]}{member.user.last_name?.[0]}
+                </AvatarFallback>
+              </Avatar>
+ 
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-gray-900 truncate">
+                    {member.user.username}
+                  </span>
+                  {getRoleBadge(member.role)}
                 </div>
+                {member.user.email && (
+                  <p className="text-xs text-gray-400 truncate mt-0.5">{member.user.email}</p>
+                )}
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
+            </motion.div>
+          ))}
+        </div>
+      )}
+ 
+      {/* ── Dialogs ── */}
       <GroupMembershipsDialog
-      groupId={groupId}
-      open={showMemberManagementDialog}
-      onOpenChange={setShowMemberManagementDialog}
+        groupId={groupId}
+        open={showMemberManagementDialog}
+        onOpenChange={setShowMemberManagementDialog}
       />
-
-
       <InviteUserDialog
-      groupId={groupId}
-      open={showInviteDialog}
-      onOpenChange={setShowInviteDialog}
+        groupId={groupId}
+        open={showInviteDialog}
+        onOpenChange={setShowInviteDialog}
       />
-
     </div>
-  )
-}
+  );
+};
 
 const ChatTab = ({groupId}:ChatTabProps) => {
 
@@ -552,69 +608,249 @@ const AttendanceHistoryTab = ({groupId, maxMembers}:AttendanceHistoryProps) => {
 }
 
 
-const NotAMemberBanner = ({onRequest, isRequesting}:NotAMemberBannerProps) => {
+const ResourcesTab = ({groupId}) => {
+  const [showDialog, setShowDialog] = useState<boolean>(false)
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedResourceType, setSelectedResourceType] = useState<string>("all");
+
+  
+  const fetchResources = async (groupId:number) => {
+    const params = new URLSearchParams()
+    params.set("group", groupId.toString());
+    if (searchQuery) params.set("search", searchQuery);
+    if (selectedResourceType && selectedResourceType !== "all") params.set("resource_type",selectedResourceType)
+
+    const response = await api.get(`/resource/?${params.toString()}`)
+    console.log(response)
+    return response.data
+  } 
+
+
+  const {data, isLoading, error} = useQuery({
+    queryKey:["resources", groupId, searchQuery, selectedResourceType],
+    queryFn: ()=>fetchResources(Number(groupId)),
+    enabled:!!groupId
+
+  })
+
+
   return (
-  <Card variant="elevated" className="text-center py-12">
-    <CardContent className="space-y-4">
-      <Lock className="h-12 w-12 text-muted-foreground mx-auto" />
-      <h2 className="text-xl font-semibold">Members Only</h2>
-      <p className="text-muted-foreground">
-        Join this group to view sessions, members, and chat.
-      </p>
-      <Button
-      onClick={()=>onRequest()}
-      disabled={isRequesting}
-      >
-        <UserPlus className="h-4 w-4 mr-2" />
-        {isRequesting? "Sending join request": "Join group"}
-      </Button>
-    </CardContent>
-  </Card>
-  )
-};
+    <div className="">
+      <div className="flex gap-2 items-center justify-between mb-5">
 
-const PendingMembershipRequest = ({
-  onCancel,
-  isCancelling,
-}: PendingMembershipRequestProps) => {
-  return (
-    <Card variant="elevated" className="text-center py-12">
-      <CardContent className="space-y-4">
-        <Clock className="h-12 w-12 text-yellow-500 mx-auto" />
+      {/* filter */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center w-full">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search resources"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
 
-        <h2 className="text-xl font-semibold">Request Pending</h2>
+        {/* resource type, document and link */}
+        <div className="flex gap-2 flex-wrap sm:flex-nowrap overflow-x-auto sm:overflow-visible">
+          {RESOURCE_TYPE_OPTIONS.map((option) => {
+            const Icon = option.icon;
+            const isActive = selectedResourceType === option.name;
+            return (
+              <Button
+                key={option.name}
+                size="sm"
+                onClick={() => setSelectedResourceType(option.name)}
+                variant={isActive ? "default" : "outline"}
+                className="shrink-0 gap-1.5"
+              >
+                {Icon && <Icon className="h-4 w-4" />}
+                {capitalize(option.name)}
+              </Button>
+            );
+          })}
+        </div>
+      </div>
 
-        <p className="text-muted-foreground">
-          Your request to join this group is currently under review.
-        </p>
-
-        <div className="flex justify-center">
-          <Button
-            variant="destructive"
-            onClick={onCancel}
-            disabled={isCancelling}
+        <div className="flex gap-3">
+          <Button 
+          variant="default"
+          onClick={()=>setShowDialog(true)}
           >
-            <XCircle className="h-4 w-4 mr-2" />
-            {isCancelling ? "Cancelling..." : "Cancel Request"}
+            <ArchiveRestore className="h-4 w-4 mr-2" />
+            Share resources
           </Button>
         </div>
-      </CardContent>
-    </Card>
-  );
-};
+      </div>
 
-const CancelledMembership = () => {
-  return (
-    <Card variant="elevated" className="text-center py-12">
-      <CardContent className="space-y-4">
-        <XCircle className="h-12 w-12 text-red-500 mx-auto" />
 
-        <h2 className="text-xl font-semibold">Membership Cancelled</h2>
+      {/* displaying all resources */}
 
-        <p className="text-muted-foreground">
-          Your membership in this group has been cancelled. You no longer have access to group sessions, chat, or resources.
-        </p>
-      </CardContent>
-    </Card>
-  );
-};
+        <QueryWrapper
+        data={data}
+        isLoading={isLoading}
+        error={error}
+        noResultsComponent={
+          <NoResult
+            label="Resources"
+            description="There are no shared resources yet"
+          />
+        }
+        >
+        
+      <div className="grid grid-cols-3 gap-4">
+          {
+            data?.results?.map((data)=>{
+              return (
+                // <p>{data.url}</p>
+                <ResourceCard
+                key={data.id}
+                id={data.id}
+                name={data.name}
+                description={data.description}
+                resource_type={data.resource_type}
+                url={data.url}
+                uploader_detail={data.uploader_detail}
+                group_detail={data.group_detail}
+
+                />
+              )
+            })
+          }
+      </div>
+        </QueryWrapper>
+
+      {/* </div> */}
+
+      <ShareResourceDialog
+      open={showDialog}
+      onOpenChange={setShowDialog}
+      groupId={groupId}
+      />
+    </div>
+  )
+}
+
+
+
+
+// ── Shared wrapper ─────────────────────────────────────────────────────────
+const BannerWrapper = ({ children }: { children: React.ReactNode }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 16 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.4 }}
+    className="w-full rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden"
+  >
+    {children}
+  </motion.div>
+);
+ 
+// ── NotAMemberBanner ───────────────────────────────────────────────────────
+export const NotAMemberBanner = ({ onRequest, isRequesting }: NotAMemberBannerProps) => (
+  <BannerWrapper>
+    {/* Orange accent top bar */}
+    <div className="h-1.5 w-full bg-orange-500" />
+ 
+    <div className="flex flex-col items-center text-center px-8 py-12">
+      {/* Icon */}
+      <div className="w-16 h-16 rounded-2xl bg-orange-50 flex items-center justify-center mb-5">
+        <Lock className="h-7 w-7 text-orange-500" />
+      </div>
+ 
+      <h2 className="text-lg font-semibold text-gray-900 mb-2">Members Only</h2>
+      <p className="text-sm text-gray-400 max-w-xs leading-relaxed mb-6">
+        Join this group to view sessions, members, and chat with your study partners.
+      </p>
+ 
+      <Button
+        onClick={onRequest}
+        disabled={isRequesting}
+        className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl px-6 py-2.5 text-sm font-medium shadow-md shadow-orange-100 transition-all disabled:opacity-60"
+      >
+        {isRequesting ? (
+          <>
+            <span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin mr-2" />
+            Sending request…
+          </>
+        ) : (
+          <>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Join group
+            <ArrowRight className="h-4 w-4 ml-2 opacity-70" />
+          </>
+        )}
+      </Button>
+    </div>
+  </BannerWrapper>
+);
+ 
+// ── PendingMembershipRequest ───────────────────────────────────────────────
+export const PendingMembershipRequest = ({ onCancel, isCancelling }: PendingMembershipRequestProps) => (
+  <BannerWrapper>
+    {/* Amber accent top bar */}
+    <div className="h-1.5 w-full bg-amber-400" />
+ 
+    <div className="flex flex-col items-center text-center px-8 py-12">
+      {/* Icon */}
+      <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center mb-5">
+        <Clock className="h-7 w-7 text-amber-500" />
+      </div>
+ 
+      {/* Status pill */}
+      <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-600 text-xs font-medium px-3 py-1 rounded-full mb-4">
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+        Under review
+      </div>
+ 
+      <h2 className="text-lg font-semibold text-gray-900 mb-2">Request Pending</h2>
+      <p className="text-sm text-gray-400 max-w-xs leading-relaxed mb-6">
+        Your request to join this group is currently under review. We'll notify you once it's approved.
+      </p>
+ 
+      <Button
+        variant="outline"
+        onClick={onCancel}
+        disabled={isCancelling}
+        className="border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300 rounded-xl px-6 py-2.5 text-sm font-medium transition-all disabled:opacity-60"
+      >
+        {isCancelling ? (
+          <>
+            <span className="w-4 h-4 rounded-full border-2 border-red-300 border-t-red-500 animate-spin mr-2" />
+            Cancelling…
+          </>
+        ) : (
+          <>
+            <XCircle className="h-4 w-4 mr-2" />
+            Cancel request
+          </>
+        )}
+      </Button>
+    </div>
+  </BannerWrapper>
+);
+ 
+// ── CancelledMembership ────────────────────────────────────────────────────
+export const CancelledMembership = () => (
+  <BannerWrapper>
+    {/* Red accent top bar */}
+    <div className="h-1.5 w-full bg-red-400" />
+ 
+    <div className="flex flex-col items-center text-center px-8 py-12">
+      {/* Icon */}
+      <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mb-5">
+        <XCircle className="h-7 w-7 text-red-400" />
+      </div>
+ 
+      {/* Status pill */}
+      <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-500 text-xs font-medium px-3 py-1 rounded-full mb-4">
+        <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+        Access revoked
+      </div>
+ 
+      <h2 className="text-lg font-semibold text-gray-900 mb-2">Membership Cancelled</h2>
+      <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
+        Your membership in this group has been cancelled. You no longer have access to group sessions, chat, or resources.
+      </p>
+    </div>
+  </BannerWrapper>
+);

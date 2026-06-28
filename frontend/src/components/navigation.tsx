@@ -108,10 +108,10 @@ export function Navbar({ isAuthenticated = false }: NavbarProps) {
             ) : (
               <div className="hidden md:flex items-center gap-2">
                 <Link to="/login">
-                  <Button variant="ghost">Log in</Button>
+                  <Button variant="ghost">Sign in</Button>
                 </Link>
                 <Link to="/register">
-                  <Button className="btn-gradient rounded-xl border-0">Sign up</Button>
+                  <Button className="btn-gradient rounded-xl border-0">Get Started</Button>
                 </Link>
               </div>
             )}

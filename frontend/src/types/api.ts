@@ -218,6 +218,22 @@ export interface paths {
         patch: operations["chat_partial_update"];
         trace?: never;
     };
+    "/core/file_upload/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["core_file_upload_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/membership/": {
         parameters: {
             query?: never;
@@ -393,6 +409,110 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["notification_partial_update"];
+        trace?: never;
+    };
+    "/resource/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Filters queryset based on user relationship.
+         *     Supports:
+         *     - ?type=my
+         */
+        get: operations["resource_list"];
+        put?: never;
+        /**
+         * @description Filters queryset based on user relationship.
+         *     Supports:
+         *     - ?type=my
+         */
+        post: operations["resource_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/resource/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Filters queryset based on user relationship.
+         *     Supports:
+         *     - ?type=my
+         */
+        get: operations["resource_retrieve"];
+        /**
+         * @description Filters queryset based on user relationship.
+         *     Supports:
+         *     - ?type=my
+         */
+        put: operations["resource_update"];
+        post?: never;
+        /**
+         * @description Filters queryset based on user relationship.
+         *     Supports:
+         *     - ?type=my
+         */
+        delete: operations["resource_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description Filters queryset based on user relationship.
+         *     Supports:
+         *     - ?type=my
+         */
+        patch: operations["resource_partial_update"];
+        trace?: never;
+    };
+    "/resource/{id}/record_download/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Filters queryset based on user relationship.
+         *     Supports:
+         *     - ?type=my
+         */
+        post: operations["resource_record_download_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/resource/{id}/record_view/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Filters queryset based on user relationship.
+         *     Supports:
+         *     - ?type=my
+         */
+        post: operations["resource_record_view_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/session/": {
@@ -865,7 +985,7 @@ export interface components {
     schemas: {
         Attendance: {
             readonly id: number;
-            readonly group_detail: components["schemas"]["StudyGroup"];
+            readonly group_detail: components["schemas"]["StudyGroupSimple"];
             readonly user_detail: components["schemas"]["SimpleUser"];
             readonly session_detail: components["schemas"]["Session"];
             group: number;
@@ -994,6 +1114,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["Notification"][];
         };
+        PaginatedResourceList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Resource"][];
+        };
         PaginatedSessionList: {
             /** @example 123 */
             count: number;
@@ -1056,7 +1191,7 @@ export interface components {
         };
         PatchedAttendance: {
             readonly id?: number;
-            readonly group_detail?: components["schemas"]["StudyGroup"];
+            readonly group_detail?: components["schemas"]["StudyGroupSimple"];
             readonly user_detail?: components["schemas"]["SimpleUser"];
             readonly session_detail?: components["schemas"]["Session"];
             group?: number;
@@ -1109,6 +1244,22 @@ export interface components {
             readonly updated_at?: string;
             content?: string;
             is_read?: boolean;
+        };
+        PatchedResource: {
+            readonly id?: number;
+            readonly group_detail?: components["schemas"]["StudyGroup"];
+            readonly uploader_detail?: components["schemas"]["SimpleUser"];
+            group?: number;
+            uploader?: number;
+            /** Format: date-time */
+            readonly created_at?: string;
+            /** Format: date-time */
+            readonly updated_at?: string;
+            name?: string;
+            description?: string | null;
+            /** Format: uri */
+            readonly url?: string;
+            resource_type?: string;
         };
         PatchedSession: {
             readonly id?: number;
@@ -1171,6 +1322,22 @@ export interface components {
             message: string | null;
             attachments: string | null;
             sender: components["schemas"]["SenderSchema"];
+        };
+        Resource: {
+            readonly id: number;
+            readonly group_detail: components["schemas"]["StudyGroup"];
+            readonly uploader_detail: components["schemas"]["SimpleUser"];
+            group: number;
+            uploader: number;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+            name: string;
+            description?: string | null;
+            /** Format: uri */
+            readonly url: string;
+            resource_type?: string;
         };
         /**
          * @description * `creator` - Creator
@@ -1746,6 +1913,24 @@ export interface operations {
             };
         };
     };
+    core_file_upload_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     membership_list: {
         parameters: {
             query?: {
@@ -2123,6 +2308,212 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Notification"];
+                };
+            };
+        };
+    };
+    resource_list: {
+        parameters: {
+            query?: {
+                group?: number;
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+                uploader?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResourceList"];
+                };
+            };
+        };
+    };
+    resource_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Resource"];
+                "application/x-www-form-urlencoded": components["schemas"]["Resource"];
+                "multipart/form-data": components["schemas"]["Resource"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Resource"];
+                };
+            };
+        };
+    };
+    resource_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this resource. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Resource"];
+                };
+            };
+        };
+    };
+    resource_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this resource. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Resource"];
+                "application/x-www-form-urlencoded": components["schemas"]["Resource"];
+                "multipart/form-data": components["schemas"]["Resource"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Resource"];
+                };
+            };
+        };
+    };
+    resource_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this resource. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    resource_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this resource. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedResource"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedResource"];
+                "multipart/form-data": components["schemas"]["PatchedResource"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Resource"];
+                };
+            };
+        };
+    };
+    resource_record_download_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this resource. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Resource"];
+                "application/x-www-form-urlencoded": components["schemas"]["Resource"];
+                "multipart/form-data": components["schemas"]["Resource"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Resource"];
+                };
+            };
+        };
+    };
+    resource_record_view_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this resource. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Resource"];
+                "application/x-www-form-urlencoded": components["schemas"]["Resource"];
+                "multipart/form-data": components["schemas"]["Resource"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Resource"];
                 };
             };
         };
