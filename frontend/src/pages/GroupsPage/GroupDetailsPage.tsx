@@ -27,6 +27,7 @@ import { useStudyGroup } from "@/hooks/useStudyGroup";
 import { useToast } from "@/hooks/useToast";
 import { GroupMembershipsDialog } from "@/components/group-memberships-dialog";
 import { InviteUserDialog } from "@/components/invite-user";
+import { ShareResourceDialog } from "@/components/share-resource-dialog";
 import { getRoleBadge } from "@/components/get-role-badge";
 import { CreateSessionDialog } from "@/components/create-session-dialog";
 import { useAuth } from "@/context/AuthContext";
@@ -35,6 +36,7 @@ import { capitalize } from "@/utils/word";
 import { ChatBox } from "@/components/chat-box";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
+import { ResourceCard } from "@/components/resource-card";
 
 
 interface GroupPageHeaderProps {
@@ -83,7 +85,11 @@ type ChatTabProps = {
 
 const RESOURCE_TYPE_OPTIONS = [
   {
-    "name":"document",
+    "name":"all",
+    "icon":null
+  },
+  {
+    "name":"file",
     "icon":BookOpen
   },
   {
@@ -213,7 +219,7 @@ export default function GroupDetailsPage() {
                     </TabsContent>
 
                     <TabsContent value="resources">
-                      <ResourcesTab/>
+                      <ResourcesTab groupId={id}/>
                     </TabsContent>
                   </Tabs>
                 )
@@ -602,52 +608,73 @@ const AttendanceHistoryTab = ({groupId, maxMembers}:AttendanceHistoryProps) => {
 }
 
 
-const ResourcesTab = () => {
+const ResourcesTab = ({groupId}) => {
+  const [showDialog, setShowDialog] = useState<boolean>(false)
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedResourceType, setSelectedResourceType] = useState<string>("all");
+
+  
+  const fetchResources = async (groupId:number) => {
+    const params = new URLSearchParams()
+    params.set("group", groupId.toString());
+    if (searchQuery) params.set("search", searchQuery);
+    if (selectedResourceType && selectedResourceType !== "all") params.set("resource_type",selectedResourceType)
+
+    const response = await api.get(`/resource/?${params.toString()}`)
+    console.log(response)
+    return response.data
+  } 
+
+
+  const {data, isLoading, error} = useQuery({
+    queryKey:["resources", groupId, searchQuery, selectedResourceType],
+    queryFn: ()=>fetchResources(Number(groupId)),
+    enabled:!!groupId
+
+  })
 
 
   return (
     <div className="">
       <div className="flex gap-2 items-center justify-between mb-5">
 
-        {/* filter */}
-        <div className="flex gap-2 justify-end flex-1">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search resources"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          {/* resource type, document and link */}
-          <div className="flex gap-2">
-            <Button
-            variant={'outline'}
-            >
-              All
-            </Button>
-            {
-              RESOURCE_TYPE_OPTIONS.map((option, index)=>{
-                const Icon = option.icon
-                return (
-                  <Button
-                  variant={'outline'}
-                  >
-                    <Icon/>
-                    {option.name}
-                  </Button>
-                )
-              })
-            }
-          </div>
-
+      {/* filter */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center w-full">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search resources"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
         </div>
+
+        {/* resource type, document and link */}
+        <div className="flex gap-2 flex-wrap sm:flex-nowrap overflow-x-auto sm:overflow-visible">
+          {RESOURCE_TYPE_OPTIONS.map((option) => {
+            const Icon = option.icon;
+            const isActive = selectedResourceType === option.name;
+            return (
+              <Button
+                key={option.name}
+                size="sm"
+                onClick={() => setSelectedResourceType(option.name)}
+                variant={isActive ? "default" : "outline"}
+                className="shrink-0 gap-1.5"
+              >
+                {Icon && <Icon className="h-4 w-4" />}
+                {capitalize(option.name)}
+              </Button>
+            );
+          })}
+        </div>
+      </div>
 
         <div className="flex gap-3">
           <Button 
           variant="default"
+          onClick={()=>setShowDialog(true)}
           >
             <ArchiveRestore className="h-4 w-4 mr-2" />
             Share resources
@@ -657,7 +684,48 @@ const ResourcesTab = () => {
 
 
       {/* displaying all resources */}
-      <div className=""></div>
+
+        <QueryWrapper
+        data={data}
+        isLoading={isLoading}
+        error={error}
+        noResultsComponent={
+          <NoResult
+            label="Resources"
+            description="There are no shared resources yet"
+          />
+        }
+        >
+        
+      <div className="grid grid-cols-3 gap-4">
+          {
+            data?.results?.map((data)=>{
+              return (
+                // <p>{data.url}</p>
+                <ResourceCard
+                key={data.id}
+                id={data.id}
+                name={data.name}
+                description={data.description}
+                resource_type={data.resource_type}
+                url={data.url}
+                uploader_detail={data.uploader_detail}
+                group_detail={data.group_detail}
+
+                />
+              )
+            })
+          }
+      </div>
+        </QueryWrapper>
+
+      {/* </div> */}
+
+      <ShareResourceDialog
+      open={showDialog}
+      onOpenChange={setShowDialog}
+      groupId={groupId}
+      />
     </div>
   )
 }
