@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BookOpen, Github, Twitter, Linkedin, Mail } from "lucide-react";
+import { BookOpen, Github, Twitter, Linkedin } from "lucide-react";
 
 export function Footer() {
   return (
@@ -12,7 +12,7 @@ export function Footer() {
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                 <BookOpen className="h-5 w-5" />
               </div>
-              <span className="text-lg font-bold">StudyMate</span>
+              <span className="text-lg font-bold">StudyHub</span>
             </Link>
             <p className="text-sm text-muted-foreground max-w-xs">
               Connect with peers, form study groups, and ace your exams together.
