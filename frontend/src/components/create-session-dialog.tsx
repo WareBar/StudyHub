@@ -142,22 +142,7 @@ export const CreateSessionDialog = ({ groupId, open, onOpenChange }: CreateSessi
         </>
       )}
     >
-      {/* ── Hero banner ── */}
-      <div className="relative rounded-2xl bg-orange-500 overflow-hidden px-6 py-5 mb-2">
-        <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/10 rounded-full" />
-        <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-white/10 rounded-full" />
-        <div className="relative z-10 flex items-center gap-4">
-          <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center border border-white/30 shrink-0">
-            <Calendar className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <p className="text-white font-semibold text-sm">New study session</p>
-            <p className="text-orange-100 text-xs mt-0.5">
-              Set a time, pick a format, and bring your group together.
-            </p>
-          </div>
-        </div>
-      </div>
+
 
       {/* ── Group selector (only when no groupId pre-set) ── */}
       {groups && (
