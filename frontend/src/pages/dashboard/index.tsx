@@ -16,7 +16,7 @@ import {
   Bell,
   Target,
 } from "lucide-react";
-
+import Stats from "@/components/stats";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/utils/api";
 import QueryWrapper from "@/components/query-wrapper";
@@ -178,64 +178,6 @@ export default function DashboardPage() {
 }
 
 
-const Stats = () => {
-  const { user, isLoading: authLoading } = useAuth();
-
-  const fetchStats = async () => {
-    const response = await api.get(`/user/stats?user_id=${user.id}`)
-    return response.data
-  }
-
-  const {data, isLoading, error} = useQuery({
-    queryKey:["stats"],
-    queryFn:fetchStats,
-    enabled: !!user
-  })
-
-  const icons = [Users, Calendar, Clock, Target]
-
-  return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      <QueryWrapper
-      data={data}
-      isLoading={isLoading}
-      error={error}
-      >
-        {
-          data?.map((stats, idx)=>{
-            const Icon = icons[idx % icons.length] // safe mapping
-            return (
-              <Card key={idx} variant="default">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <Icon className="h-5 w-5 text-primary" />
-                    <TrendingUp className="h-4 w-4 text-success" />
-                  </div>
-                  <div className="text-2xl sm:text-3xl font-bold">{stats.content}</div>
-                  <div className="text-sm text-muted-foreground">{stats.title}</div>
-                  {/* <div className="text-xs text-success mt-1">{stat.trend}</div> */}
-                </CardContent>
-              </Card>
-            )
-          })
-        }
-      {/* {data.map(stat => (
-        <Card key={stat.label} variant="default">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-2">
-              <stat.icon className="h-5 w-5 text-primary" />
-              <TrendingUp className="h-4 w-4 text-success" />
-            </div>
-            <div className="text-2xl sm:text-3xl font-bold">{stat.value}</div>
-            <div className="text-sm text-muted-foreground">{stat.label}</div>
-            <div className="text-xs text-success mt-1">{stat.trend}</div>
-          </CardContent>
-        </Card>
-      ))}  */}
-      </QueryWrapper>
-    </div>
-  )
-}
 
 const UpcomingSessions = () => {
   const fetchUpcomingSessions = async (): Promise<{ results: Session[] }> => {

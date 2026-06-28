@@ -26,7 +26,11 @@ export function extractLinks(message: string): LinkResult {
     return { links, text };
 }
 
-export const getExtension = (url: string): string => {
-const withoutQuery = url.split("?")[0];  // strip query string first
-return withoutQuery.split(".").pop()?.toLowerCase() ?? "";
+export const getExtension = (url?: string | null): string => {
+  if (!url) return "";
+
+  const last = url.split("?")[0].split("/").pop();
+  if (!last || !last.includes(".")) return "";
+
+  return last.split(".").pop()!.toLowerCase();
 };

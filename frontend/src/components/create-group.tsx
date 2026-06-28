@@ -47,6 +47,7 @@ export const CreateStudyGroupDialog = ({ open, onOpenChange }: CreateStudyGroupD
       return toast.error("Missing fields", "Please fill in all required fields.");
     }
 
+    
     createStudyGroup({
       name,
       description,
