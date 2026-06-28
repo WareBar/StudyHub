@@ -18,6 +18,7 @@ export const formatSession = (session: NextSession) => {
   };
 
 
+
 export const formatTime = (start: string, end: string): string => {
   const startDate = new Date(start);
   const endDate = new Date(end);
@@ -69,3 +70,16 @@ export const relativeTime = (isoString: string): string => {
   if (hours < 24) return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
   return `${days} day${days !== 1 ? "s" : ""} ago`;
 };
+
+
+
+export const formatDate = (timeDate:string) => {
+    const date = new Date(timeDate);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  };
