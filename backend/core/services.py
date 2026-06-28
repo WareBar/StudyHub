@@ -62,6 +62,9 @@ class CoreService:
         And formats file name to include the timestamp to avoid duplicate resource error from supabase
         
         """
+        print("F"*600)
+        print(file)
+        print("Z"*600)
         CoreService._verify_file_size(file)
 
 
@@ -75,7 +78,7 @@ class CoreService:
 
         try:
             data = file.read()  # works for both InMemoryUploadedFile and TemporaryUploadedFile
-            supabase.storage.from_(SUPABASE_BUCKET).upload({file_name}, data)
+            supabase.storage.from_(SUPABASE_BUCKET).upload(file_name, data)
         except FileNotFoundError:
             raise ValueError({
                 "code":"FILE_NOT_FOUND",
@@ -86,7 +89,7 @@ class CoreService:
                 "code":"FILE_UPLOAD_ERROR",
                 "detail":f"Error uploading {file}: {e}"
             }) from e
-        url = supabase.storage.from_(SUPABASE_BUCKET).get_public_url(file.name)
+        url = supabase.storage.from_(SUPABASE_BUCKET).get_public_url(file_name)
         return {
             "message":f"{file.name} is successfully uploaded",
             "url":url

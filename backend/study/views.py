@@ -4,7 +4,7 @@ from study.models import (
     Subject,
     MemberShip,
     Session,
-    Attendance, Resource
+    Attendance, Resource, ResourceViews, ResourceDownload
 )
 
 from study.serializers import (
@@ -12,7 +12,7 @@ from study.serializers import (
     SubjectSerializer,
     MemberShipSerializer,
     SessionSerializer,
-    AttendanceSerializer, ResourceSerializer
+    AttendanceSerializer, ResourceSerializer, ResourceViewsSerializer, ResourceDownloadSerializer
 )
 from django.db.models import Count, Q
 from rest_framework.exceptions import ValidationError, PermissionDenied
@@ -30,6 +30,8 @@ from study.services import (
     SessionService,
     AttendanceService, MembershipService, ResourceService
 )
+
+
 
 # validators
 from core.validators import require_params
@@ -238,13 +240,13 @@ class AttendanceViewset(GroupRBACMixin, UserRelatedMixin, ModelViewSet):
     
 
 
-class ResourceViewset(UserRelatedMixin, ModelViewSet):
+class ResourceViewset(UserRelatedMixin, SearchMixin, ModelViewSet):
     queryset = Resource.objects.select_related("uploader","group").all()
     serializer_class = ResourceSerializer
     pagination_class = CustomPagination
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['group', 'uploader']
-    # resource_name = "resource"
+    filterset_fields = ['group', 'uploader', 'resource_type']
+    search_fields = ["name","url"]
     user_lookup_field = "uploader"
 
     def perform_create(self, serializer):
@@ -259,6 +261,18 @@ class ResourceViewset(UserRelatedMixin, ModelViewSet):
         user = self.request.user
         instance = ResourceService._update_resource(self.get_object(),user.id,serializer.validated_data, file)
         serializer.instance = instance
+
+
+    # returns the views and download
+    @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated])
+    def views(self, request, pk=None):
+        return Response('wow')
+
+
+    @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated])
+    def downloads(self, request, pk=None):
+        return Response('wow')
+
 
 
     @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
@@ -285,4 +299,4 @@ class ResourceViewset(UserRelatedMixin, ModelViewSet):
             user_id=user_id
         )
         return Response(result)
-    
+

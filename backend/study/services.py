@@ -18,7 +18,7 @@ from django.contrib.postgres.aggregates import ArrayAgg
 from django.utils.timezone import now
 from django.utils import timezone
 from django.db.models import F
-
+from datetime import timedelta
 from core.services import CoreService
 
 class BaseService:
@@ -159,12 +159,12 @@ class StudyGroupService(BaseService):
         # check if the user has already an exisinng membership record
         membership_record = StudyGroupService.get_membership(group, user)
 
-        if membership_record:
-            if membership_record.status == MemberShip.MemberShipStatus.PENDING:
-                raise ValidationError({
-                    "detail": f"{user.username} already has a pending invite/request",
-                    "code": "ALREADY_PENDING"
-                })
+        # if membership_record:
+        #     if membership_record.status == MemberShip.MemberShipStatus.PENDING:
+        #         raise ValidationError({
+        #             "detail": f"{user.username} already has a pending invite/request",
+        #             "code": "ALREADY_PENDING"
+        #         })
 
         actions = {
             "join": StudyGroupService._handle_join,
@@ -554,18 +554,34 @@ class AttendanceService(BaseService):
 
 class ResourceService(BaseService):
 
+    @staticmethod
+    def _get_debounce_window():
+        now = timezone.now()
+        return now, now - timedelta(seconds=5)
+    
 
     @staticmethod
     def _create_resource(data, file):
         # unlike other thing, we dont need to use get_group_and_user since in the views, we passed the validated data, so the data has now object or created/filled the object from ids
         ResourceService.require_active_membership(group=data['group'], user=data['uploader'])
 
+        resource_type = data['resource_type']
 
-        if data['resource_type'] == Resource.ResourceType.LINK:
-            url = data["url"]
-        elif data['resource_type'] == Resource.ResourceType.FILE:
-            # upload file into the supbase and get the public url 
+
+        if resource_type == Resource.ResourceType.LINK:
+
+            url = data.get('url')
+            if not url:
+                raise ValueError("URL is required for link resources")
+
+        elif resource_type == Resource.ResourceType.FILE:
             url = CoreService.upload_file(file)['url']
+        else:
+            raise ValueError(f"Unknown resource type: {resource_type}")
+
+
+        # remove url from data so **data doesn't conflict with url=url
+        data.pop('url', None)
 
         return Resource.objects.create(
             **data,
@@ -603,18 +619,24 @@ class ResourceService(BaseService):
     # then record it
     @staticmethod
     def _record_download(resource_id:int, group_id:int, user_id:int):
-
+        now, debounce_window = ResourceService._get_debounce_window()
         resource_download_instance, created = ResourceDownload.objects.get_or_create(
             resource_id=resource_id,
             group_id=group_id,
             user_id=user_id,
-            defaults={'count': 1}  # start at 1 on creation
+            defaults={'count': 1, 'updated_at':now}  # start at 1 on creation
         )
 
         # always use F for updating to avoid race condition
         # This sends a single atomic SQL statement:
         if not created:
-            ResourceDownload.objects.filter(pk=resource_download_instance.pk).update(count=F('count') + 1)
+            ResourceDownload.objects.filter(
+                pk=resource_download_instance.pk,
+                updated_at__lte=debounce_window
+                ).update(
+                    count=F('count') + 1,
+                    updated_at=now
+                    )
 
         return {
             "success":True,
@@ -623,18 +645,25 @@ class ResourceService(BaseService):
 
     @staticmethod
     def _record_views(resource_id:int, group_id:int, user_id:int):
+        now, debounce_window = ResourceService._get_debounce_window()
 
         resource_views_instance, created = ResourceViews.objects.get_or_create(
             resource_id=resource_id,
             group_id=group_id,
             user_id=user_id,
-            defaults={'count': 1}  # start at 1 on creation
+            defaults={'count': 1, 'updated_at':now}  # start at 1 on creation
         )
 
         # always use F for updating to avoid race condition
         # This sends a single atomic SQL statement:
         if not created:
-            ResourceViews.objects.filter(pk=resource_views_instance.pk).update(count=F('count') + 1)
+            ResourceViews.objects.filter(
+                pk=resource_views_instance.pk,
+                updated_at__lte=debounce_window
+                ).update(
+                    count=F('count') + 1,
+                    updated_at=now
+                    )
 
         return {
             "success":True,

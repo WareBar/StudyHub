@@ -167,7 +167,7 @@ class ResourceSerializer(ModelSerializer):
     class Meta:
         model = Resource
         fields = "__all__"
-        read_only_fields = ["url"] # frontend doesn't send it, backend sets it
+        # read_only_fields = ["url"] # frontend doesn't send it, backend sets it, it strips url fields when making changes, only visible when get requyest
         
 
 
