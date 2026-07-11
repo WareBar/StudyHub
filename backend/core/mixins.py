@@ -65,7 +65,6 @@ class UserRelatedMixin:
 
     def filter_queryset(self, queryset):
         queryset = super().filter_queryset(queryset) #runs previous filters then apply this filter
-
         response_type = self.request.query_params.get("type")
         if response_type == "my":
             # checks auth
@@ -76,7 +75,6 @@ class UserRelatedMixin:
                 self.user_lookup_field: self.request.user
             }
             filters.update(self.extra_filters)
-
-            return queryset.filter(**filters)
-
+            return queryset.filter(**filters).distinct()
+        
         return queryset
