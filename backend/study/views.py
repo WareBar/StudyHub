@@ -20,7 +20,7 @@ from django.utils.timezone import now
 from rest_framework.decorators import action
 from rest_framework import status
 from django_filters.rest_framework import DjangoFilterBackend
-from core.mixins import GroupRBACMixin, SearchMixin, UserRelatedMixin
+from core.mixins import GroupRBACMixin, SearchMixin, UserRelatedMixin, DateFilterViewSetMixin
 from core.pagination import CustomPagination
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -170,14 +170,19 @@ class MemberShipViewset(GroupRBACMixin, SearchMixin, ModelViewSet):
         result = MembershipService.handle_role_update(group_id=group_id, member_id=member_id, new_role=new_role, acting_user_id=request.user.id)
         return Response(result)
 
-class SessionViewset(GroupRBACMixin, SearchMixin, ModelViewSet):
+class SessionViewset(UserRelatedMixin, DateFilterViewSetMixin, GroupRBACMixin, SearchMixin, ModelViewSet):
     queryset = Session.objects.select_related('group').all()
     serializer_class = SessionSerializer
     pagination_class = CustomPagination
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['group', 'session_type']
+    filterset_fields = ['group', 'session_type','status']
+    date_field = "start"
     resource_name = "session"
-
+    # for type=my, see only the groups session where he is accepted
+    user_lookup_field = "group__memberships__user"
+    extra_filters = {
+        "group__memberships__status": MemberShip.MemberShipStatus.ACCEPTED
+    }
 
     def perform_create(self, serializer):
         instance = SessionService._create_session(serializer.validated_data)
