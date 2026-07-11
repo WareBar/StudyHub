@@ -37,7 +37,7 @@ import { ChatBox } from "@/components/chat-box";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
 import { ResourceCard } from "@/components/resource-card";
-
+import { BannerWrapper } from "@/components/ui/banner-wrapper";
 
 interface GroupPageHeaderProps {
   detail: StudyGroupProps
@@ -732,18 +732,6 @@ const ResourcesTab = ({groupId}) => {
 
 
 
-
-// ── Shared wrapper ─────────────────────────────────────────────────────────
-const BannerWrapper = ({ children }: { children: React.ReactNode }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 16 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.4 }}
-    className="w-full rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden"
-  >
-    {children}
-  </motion.div>
-);
  
 // ── NotAMemberBanner ───────────────────────────────────────────────────────
 export const NotAMemberBanner = ({ onRequest, isRequesting }: NotAMemberBannerProps) => (
