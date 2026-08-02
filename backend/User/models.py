@@ -61,6 +61,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name='email address',
         max_length=255,
         unique=True,
+        db_index=True
     )
 
     avatar = models.URLField(max_length=500, blank=True, null=True)

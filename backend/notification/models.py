@@ -9,7 +9,7 @@ class Notification(BaseModel):
         blank=False
     )
     is_read = models.BooleanField(
-        default=False
+        default=False, db_index=True
     )
     # notification_type
     to = models.ForeignKey(

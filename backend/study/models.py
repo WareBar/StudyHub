@@ -26,7 +26,7 @@ class StudyGroup(BaseModel):
         return self.name
     
 class Subject(BaseModel):   
-    name = models.CharField(max_length=50, unique=True, blank=False, null=False)
+    name = models.CharField(max_length=50, unique=True, blank=False, null=False, db_index=True)
     def __str__(self):
         return self.name
 
@@ -61,14 +61,16 @@ class MemberShip(BaseModel):
         choices=MemberShipStatus.choices,
         default=MemberShipStatus.PENDING,
         null=False,
-        blank=False
+        blank=False,
+        db_index=True
     )
     role = models.CharField(
         max_length=20,
         choices=Role.choices,
         default=Role.MEMBER,
         null=False,
-        blank=False
+        blank=False,
+        db_index=True
     )
     class Meta:
         unique_together = ["group","user"]
@@ -98,12 +100,14 @@ class Session(BaseModel):
     session_type = models.CharField(
         max_length=10,
         choices=SessionTypes.choices,
-        default=SessionTypes.ONLINE
+        default=SessionTypes.ONLINE,
+        db_index=True
     )
     status = models.CharField(
         max_length=20, 
         choices=SessionStatus.choices,
-        default=SessionStatus.SCHEDULED
+        default=SessionStatus.SCHEDULED,
+        db_index=True
     )
     start = models.DateTimeField()
     end = models.DateTimeField()
@@ -147,10 +151,11 @@ class Attendance(BaseModel):
     status = models.CharField(
         max_length=20,
         choices=AttendanceStatus.choices,
-        default=AttendanceStatus.ABSENT
+        default=AttendanceStatus.ABSENT,
+        db_index=True
     )
     # to determine if the user left or in the attendance before sending a heartbeat
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True, db_index=True)
 
     # to calculate the users study time in the session
     check_in_time = models.DateTimeField(default=timezone.now)
@@ -184,7 +189,7 @@ class Resource(BaseModel):
         null=False, blank=False, default="/"
     )
     resource_type = models.CharField(
-        max_length=10, null=False, blank=False, default=ResourceType.LINK
+        max_length=10, null=False, blank=False, default=ResourceType.LINK, db_index=True
     )
     group = models.ForeignKey(
         StudyGroup, on_delete=models.DO_NOTHING, null=False, blank=False
@@ -217,7 +222,8 @@ class ResourceDownload(BaseModel):
         null=False, blank=False
     )
     count = models.PositiveIntegerField(
-        default=0
+        default=0,
+        db_index=True
     )
     class Meta:
         unique_together = ('resource', 'group', 'user')
@@ -241,7 +247,8 @@ class ResourceViews(BaseModel):
         null=False, blank=False
     )
     count = models.PositiveIntegerField(
-        default=0
+        default=0,
+        db_index=True
     )
 
     class Meta:
